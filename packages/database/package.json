@@ -8,14 +8,15 @@
     "build": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --ext .ts",
-    "db:generate": "prisma generate --schema prisma/schema.prisma",
-    "db:push": "prisma db push --schema prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
-    "db:studio": "prisma studio --schema prisma/schema.prisma",
+    "db:generate": "node scripts/run-prisma.mjs generate --schema prisma/schema.prisma",
+    "db:push": "node scripts/run-prisma.mjs db push --schema prisma/schema.prisma",
+    "db:migrate": "node scripts/run-prisma.mjs migrate dev --schema prisma/schema.prisma",
+    "db:studio": "node scripts/run-prisma.mjs studio --schema prisma/schema.prisma",
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.4.7"
   },
   "devDependencies": {
     "prisma": "5.22.0"

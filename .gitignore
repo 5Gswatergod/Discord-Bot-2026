@@ -11,3 +11,6 @@ dashboard-dev.log
 .env.*.local
 *.log
 Dockerfile.local
+
+oracle.key
+oracle.pub

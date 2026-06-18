@@ -20,7 +20,7 @@ This repository currently implements Phases 1 through 5 from `Task.md`:
 - Button-based giveaways with role gates, scheduled expiry, manual end, reroll, and winner announcements
 - Button polls with 2-10 options, public or anonymous results, expiry support, and dashboard management
 - Social alert workers for YouTube RSS feeds, RSS feeds, and Twitch live checks with dashboard-managed templates
-- Deployment-focused Docker Compose defaults with service health checks, restart policies, and container-safe database URLs
+- Oracle Cloud production deployment with Docker, PostgreSQL, Redis, Caddy HTTPS, health checks, and persistent volumes
 
 ## Stack
 
@@ -99,6 +99,8 @@ corepack pnpm db:generate
 corepack pnpm db:push
 corepack pnpm seed
 ```
+
+Database commands always load `DATABASE_URL` from the repository root `.env`, even though pnpm executes them from `packages/database`.
 
 ## Discord OAuth Redirect
 
@@ -203,46 +205,25 @@ The compose file starts:
 
 Inside Compose, bot and dashboard use `CONTAINER_DATABASE_URL` and `CONTAINER_REDIS_URL` when present, otherwise they default to the `postgres` and `redis` service hostnames. This avoids the common container issue where `localhost` points at the app container instead of the database.
 
-## Render Deployment
+## Oracle Cloud Deployment
 
-This repo includes a `render.yaml` Blueprint for Render:
+The recommended no-monthly-cost deployment uses an Oracle Cloud Always Free Compute VM:
 
-- Traditional Chinese step-by-step guide: [`RENDER_DEPLOYMENT.md`](./RENDER_DEPLOYMENT.md)
-- `guildforge-dashboard`: web service for the Next.js dashboard
-- `guildforge-bot`: background worker for the Discord bot
-- `guildforge-postgres`: Render Postgres database
-- `guildforge-redis`: Render Key Value instance for Redis-compatible caching
+- Traditional Chinese guide: [`ORACLE_CLOUD_DEPLOYMENT.md`](./ORACLE_CLOUD_DEPLOYMENT.md)
+- Production Dockerfile: [`Dockerfile`](./Dockerfile)
+- Production Compose stack: [`docker-compose.oracle.yml`](./docker-compose.oracle.yml)
+- Automatic HTTPS proxy: [`Caddyfile`](./Caddyfile)
 
-Recommended flow:
+The Oracle stack runs Dashboard, Bot, PostgreSQL, Redis, and Caddy on one VM. PostgreSQL and Redis remain private inside the Docker network, while Caddy exposes HTTPS on ports 80 and 443.
 
-1. Push this repository to GitHub.
-2. In Render, create a new Blueprint from the repo.
-3. Fill the prompted secrets:
-   - `DISCORD_CLIENT_ID`
-   - `DISCORD_CLIENT_SECRET`
-   - `DISCORD_BOT_TOKEN`
-   - `NEXTAUTH_URL`
-   - `APP_URL`
-4. Use the dashboard service URL for both `NEXTAUTH_URL` and `APP_URL`, for example:
+Basic production commands:
 
-```txt
-https://guildforge-dashboard.onrender.com
+```bash
+docker compose -f docker-compose.oracle.yml build
+docker compose -f docker-compose.oracle.yml up -d postgres redis
+docker compose -f docker-compose.oracle.yml run --rm dashboard corepack pnpm db:push
+docker compose -f docker-compose.oracle.yml up -d
 ```
-
-5. In the Discord Developer Portal, add the production OAuth callback:
-
-```txt
-https://guildforge-dashboard.onrender.com/api/auth/callback/discord
-```
-
-6. Deploy the Blueprint. The dashboard service runs `corepack pnpm db:push` as its pre-deploy command to apply the Prisma schema to Render Postgres.
-
-The Blueprint is configured to auto-deploy only after CI checks pass. The included GitHub Actions workflow runs Prisma generation, typecheck, lint, and production build.
-
-Optional Twitch live alerts require setting these Render environment variables on the shared environment group:
-
-- `TWITCH_CLIENT_ID`
-- `TWITCH_ACCESS_TOKEN`
 
 ## Verification
 

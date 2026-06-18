@@ -1,4 +1,38 @@
 import { ModuleKey, PrismaClient } from "@prisma/client";
+import { config } from "dotenv";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+
+function findEnvFile(startDirectory: string) {
+  let directory = startDirectory;
+
+  while (dirname(directory) !== directory) {
+    const candidate = join(directory, ".env");
+
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+
+    directory = dirname(directory);
+  }
+
+  const rootCandidate = join(directory, ".env");
+  return existsSync(rootCandidate) ? rootCandidate : null;
+}
+
+const envPath = findEnvFile(process.cwd());
+
+if (envPath) {
+  config({
+    path: envPath
+  });
+}
+
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL is missing. Create the repository root .env file from .env.example and set DATABASE_URL."
+  );
+}
 
 const prisma = new PrismaClient();
 

@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: guildforge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: guildforge
+    volumes:
+      - oracle-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guildforge -d guildforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - oracle-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  dashboard:
+    build:
+      context: .
+      target: dashboard
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://guildforge:${POSTGRES_PASSWORD}@postgres:5432/guildforge?schema=public
+      REDIS_URL: redis://redis:6379
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?Set DISCORD_CLIENT_ID in .env}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:?Set DISCORD_CLIENT_SECRET in .env}
+      DISCORD_BOT_PERMISSIONS: ${DISCORD_BOT_PERMISSIONS:-8}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env}
+      NEXTAUTH_URL: https://${APP_DOMAIN}
+      APP_URL: https://${APP_DOMAIN}
+      PORT: "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:3000/api/health'').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"'
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  bot:
+    build:
+      context: .
+      target: bot
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://guildforge:${POSTGRES_PASSWORD}@postgres:5432/guildforge?schema=public
+      REDIS_URL: redis://redis:6379
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?Set DISCORD_CLIENT_ID in .env}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?Set DISCORD_BOT_TOKEN in .env}
+      DISCORD_TEST_GUILD_ID: ${DISCORD_TEST_GUILD_ID:-}
+      GUILD_SYNC_LIMIT: ${GUILD_SYNC_LIMIT:-100}
+      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
+      TWITCH_ACCESS_TOKEN: ${TWITCH_ACCESS_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - oracle-caddy-data:/data
+      - oracle-caddy-config:/config
+    depends_on:
+      dashboard:
+        condition: service_healthy
+
+volumes:
+  oracle-postgres-data:
+  oracle-redis-data:
+  oracle-caddy-data:
+  oracle-caddy-config:
