@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/guildforge?schema=public
+      REDIS_URL: redis://localhost:6379
+      DISCORD_CLIENT_ID: "123456789012345678"
+      DISCORD_CLIENT_SECRET: dummy-client-secret
+      DISCORD_BOT_TOKEN: dummy.bot.token
+      NEXTAUTH_SECRET: dummy-nextauth-secret-at-least-16
+      NEXTAUTH_URL: http://localhost:3000
+      APP_URL: http://localhost:3000
+      TWITCH_CLIENT_ID: ""
+      TWITCH_ACCESS_TOKEN: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: corepack pnpm db:generate
+
+      - name: Typecheck
+        run: corepack pnpm typecheck
+
+      - name: Lint
+        run: corepack pnpm lint
+
+      - name: Build
+        run: corepack pnpm build

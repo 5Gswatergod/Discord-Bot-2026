@@ -1,0 +1,29 @@
+import type {
+  ChatInputCommandInteraction,
+  Client,
+  SlashCommandBuilder,
+  SlashCommandOptionsOnlyBuilder,
+  SlashCommandSubcommandsOnlyBuilder
+} from "discord.js";
+import type Redis from "ioredis";
+
+import type { DatabaseClient } from "@guildforge/database";
+
+import type { Logger } from "../lib/logger";
+
+export type SlashCommandData =
+  | SlashCommandBuilder
+  | SlashCommandOptionsOnlyBuilder
+  | SlashCommandSubcommandsOnlyBuilder;
+
+export interface CommandContext {
+  prisma: DatabaseClient;
+  redis: Redis | null;
+  logger: Logger;
+  client: Client;
+}
+
+export interface BotCommand {
+  data: SlashCommandData;
+  execute(interaction: ChatInputCommandInteraction, context: CommandContext): Promise<void>;
+}

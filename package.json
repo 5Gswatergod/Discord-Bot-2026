@@ -1,0 +1,39 @@
+{
+  "name": "guildforge",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "corepack pnpm -r --parallel dev",
+    "dev:bot": "corepack pnpm --filter @guildforge/bot dev",
+    "dev:dashboard": "corepack pnpm --filter @guildforge/dashboard dev",
+    "build": "corepack pnpm -r build",
+    "typecheck": "corepack pnpm -r typecheck",
+    "lint": "corepack pnpm -r lint",
+    "format": "prettier --write .",
+    "db:generate": "corepack pnpm --filter @guildforge/database db:generate",
+    "db:push": "corepack pnpm --filter @guildforge/database db:push",
+    "db:migrate": "corepack pnpm --filter @guildforge/database db:migrate",
+    "db:studio": "corepack pnpm --filter @guildforge/database db:studio",
+    "seed": "corepack pnpm --filter @guildforge/database seed"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.22.0",
+    "@types/node": "22.10.2",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.23",
+    "pnpm": "9.15.4",
+    "prettier": "^3.4.2",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "prisma": {
+    "schema": "packages/database/prisma/schema.prisma"
+  }
+}

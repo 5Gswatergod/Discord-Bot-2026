@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@guildforge/config": ["packages/config/src/index.ts"],
+      "@guildforge/database": ["packages/database/src/index.ts"],
+      "@guildforge/shared": ["packages/shared/src/index.ts"]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+coverage
+.turbo
+packages/database/src/generated
+*.tsbuildinfo
+*.log
+.env
+.env.local
+.env.*.local
+dashboard-dev.out.log
+dashboard-dev.err.log
