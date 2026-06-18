@@ -1,6 +1,9 @@
-FROM node:22-alpine AS base
+FROM node:22-bookworm-slim AS base
 
-RUN corepack enable
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates openssl \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable
 
 WORKDIR /workspace
 

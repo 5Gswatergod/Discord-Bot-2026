@@ -40,6 +40,13 @@ Image: Ubuntu 24.04 LTS
 
 AMD Micro 的記憶體較少，建置 Next.js 時可能不足。若使用 AMD Micro，建議先在其他電腦建置 image，或設定 swap。
 
+`VM.Standard.E2.1.Micro` 只有 1 GB RAM。使用本專案時建議至少設定 4 GB swap，並一次只建置一個 image，以降低建置期間記憶體不足的機率：
+
+```bash
+docker compose -f docker-compose.oracle.yml build bot
+docker compose -f docker-compose.oracle.yml build dashboard
+```
+
 ## 2. 準備項目
 
 你需要：
@@ -557,6 +564,35 @@ docker compose -f docker-compose.oracle.yml up -d
 ```
 
 真正的 `DATABASE_URL` 只會在 container 啟動時由 `docker-compose.oracle.yml` 注入。
+
+### Prisma 顯示無法偵測 OpenSSL
+
+常見訊息：
+
+```txt
+Prisma failed to detect the libssl/openssl version
+Could not parse schema engine response
+```
+
+新版 `Dockerfile` 已改用 Debian Bookworm Slim，並在 image 內安裝 `openssl` 與 `ca-certificates`。更新 repository 後重新建置：
+
+```bash
+git pull
+docker compose -f docker-compose.oracle.yml build --no-cache bot
+docker compose -f docker-compose.oracle.yml build dashboard
+```
+
+確認 image 內可以讀取 OpenSSL：
+
+```bash
+docker compose -f docker-compose.oracle.yml run --rm dashboard openssl version
+```
+
+接著再執行：
+
+```bash
+docker compose -f docker-compose.oracle.yml run --rm dashboard corepack pnpm db:push
+```
 
 ### Bot 無法啟動
 
