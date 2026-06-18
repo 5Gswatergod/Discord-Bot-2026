@@ -12,6 +12,13 @@ if (existsSync(rootEnvPath)) {
   });
 }
 
+const prismaCommand = process.argv[2];
+
+if (!process.env.DATABASE_URL && prismaCommand === "generate") {
+  process.env.DATABASE_URL =
+    "postgresql://guildforge:build-only@localhost:5432/guildforge?schema=public";
+}
+
 if (!process.env.DATABASE_URL) {
   console.error(
     "DATABASE_URL is missing. Create the repository root .env file from .env.example and set DATABASE_URL."

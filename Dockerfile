@@ -16,7 +16,8 @@ RUN corepack pnpm install --frozen-lockfile
 COPY apps apps
 COPY packages packages
 
-RUN corepack pnpm db:generate
+RUN DATABASE_URL="postgresql://guildforge:build-only@localhost:5432/guildforge?schema=public" \
+    corepack pnpm db:generate
 
 FROM base AS dashboard
 

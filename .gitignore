@@ -13,4 +13,4 @@ dashboard-dev.log
 Dockerfile.local
 
 oracle.key
-oracle.pub
+oracle.key.pub

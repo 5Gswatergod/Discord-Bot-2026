@@ -539,6 +539,25 @@ docker compose -f docker-compose.oracle.yml logs postgres dashboard
 docker compose -f docker-compose.oracle.yml run --rm dashboard corepack pnpm db:push
 ```
 
+### Docker build 在 `db:generate` 顯示缺少 `DATABASE_URL`
+
+先更新 repository：
+
+```bash
+git pull
+```
+
+新版 Dockerfile 會在 Prisma Client 產生階段使用 build-only placeholder URL，不會連線資料庫，也不會把 production database password 寫入 image。
+
+重新建置且不使用舊 cache：
+
+```bash
+docker compose -f docker-compose.oracle.yml build --no-cache
+docker compose -f docker-compose.oracle.yml up -d
+```
+
+真正的 `DATABASE_URL` 只會在 container 啟動時由 `docker-compose.oracle.yml` 注入。
+
 ### Bot 無法啟動
 
 ```bash
