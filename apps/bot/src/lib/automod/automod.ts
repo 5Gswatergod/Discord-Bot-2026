@@ -95,7 +95,7 @@ async function matchesRule(message: Message<true>, rule: AutoModRule, context: C
 
 async function applyPunishment(message: Message<true>, rule: AutoModRule, context: CommandContext) {
   const member = message.member ?? (await message.guild.members.fetch(message.author.id).catch(() => null));
-  const reason = `AutoMod: ${rule.name}`;
+  const reason = `自動管理：${rule.name}`;
 
   if (message.deletable) {
     await message.delete().catch(() => null);

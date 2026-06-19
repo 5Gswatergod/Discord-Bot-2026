@@ -11,6 +11,24 @@ import { moderationSettingsSchema, type ModerationSettings } from "@guildforge/s
 import type { CommandContext } from "../commands/types";
 import { getGuildModuleSettings, isGuildModuleEnabled } from "./modules";
 
+const moderationActionLabels: Record<string, string> = {
+  BAN: "封鎖",
+  KICK: "踢除",
+  TIMEOUT: "禁言",
+  WARN: "警告",
+  CLEAR: "清除訊息",
+  MUTE: "靜音",
+  UNMUTE: "解除靜音",
+  SLOWMODE: "慢速模式",
+  LOCK: "鎖定頻道",
+  UNLOCK: "解鎖頻道",
+  AUTOMOD_DELETE_MESSAGE: "自動管理：刪除訊息",
+  AUTOMOD_WARN: "自動管理：警告",
+  AUTOMOD_TIMEOUT: "自動管理：禁言",
+  AUTOMOD_KICK: "自動管理：踢除",
+  AUTOMOD_BAN: "自動管理：封鎖"
+};
+
 export async function getModerationSettings(prisma: DatabaseClient, guildId: string) {
   const config = await getGuildModuleSettings(prisma, guildId, "MODERATION");
 
@@ -23,7 +41,7 @@ export async function getModerationSettings(prisma: DatabaseClient, guildId: str
 export async function requireModerationModule(interaction: ChatInputCommandInteraction) {
   if (!interaction.guildId) {
     await interaction.reply({
-      content: "This command can only be used inside a server.",
+      content: "此指令只能在伺服器內使用。",
       ephemeral: true
     });
     return false;
@@ -44,7 +62,7 @@ export async function ensureModerationReady(
 
   if (!moderation.enabled) {
     await interaction.reply({
-      content: "Moderation is disabled for this server.",
+      content: "此伺服器已停用管理功能。",
       ephemeral: true
     });
     return null;
@@ -52,7 +70,7 @@ export async function ensureModerationReady(
 
   if (!hasModeratorAccess(interaction, moderation.settings)) {
     await interaction.reply({
-      content: "You do not have permission to use moderation commands.",
+      content: "你沒有使用管理指令的權限。",
       ephemeral: true
     });
     return null;
@@ -196,26 +214,26 @@ export async function sendModerationActionLog(
 
   const embed = new EmbedBuilder()
     .setColor(0xef4444)
-    .setTitle(`Moderation case #${input.caseNumber}`)
+    .setTitle(`管理案件 #${input.caseNumber}`)
     .addFields(
       {
-        name: "Action",
-        value: input.action,
+        name: "操作",
+        value: moderationActionLabels[input.action] ?? input.action,
         inline: true
       },
       {
-        name: "Target",
+        name: "對象",
         value: `<@${input.targetUserId}>`,
         inline: true
       },
       {
-        name: "Moderator",
+        name: "管理員",
         value: `<@${input.moderatorUserId}>`,
         inline: true
       },
       {
-        name: "Reason",
-        value: input.reason || "No reason provided."
+        name: "理由",
+        value: input.reason || "未提供理由。"
       }
     )
     .setTimestamp();

@@ -49,11 +49,11 @@ export function LoggingSettingsForm({ guildId, configs }: LoggingSettingsFormPro
     });
 
     if (!response.ok) {
-      setMessage("Failed to save logging settings.");
+      setMessage("無法儲存伺服器紀錄設定。");
       return;
     }
 
-    setMessage("Saved.");
+    setMessage("已儲存。");
     startTransition(() => router.refresh());
   }
 
@@ -73,14 +73,14 @@ export function LoggingSettingsForm({ guildId, configs }: LoggingSettingsFormPro
           <Input
             value={config.channelId ?? ""}
             onChange={(event) => updateConfig(config.event, { channelId: event.target.value })}
-            placeholder="Channel ID"
+            placeholder="頻道 ID"
           />
         </div>
       ))}
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           <Save size={16} aria-hidden="true" />
-          Save
+          儲存
         </Button>
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       </div>

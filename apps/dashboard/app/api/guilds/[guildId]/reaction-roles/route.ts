@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = reactionRolePanelsUpdateSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid reaction role panels" }, { status: 400 });
+    return NextResponse.json({ error: "自助身分組面板格式不正確" }, { status: 400 });
   }
 
   const input = parsed.data;
@@ -39,7 +39,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     });
 
     if (ownedPanelCount !== panelIds.length) {
-      return NextResponse.json({ error: "Reaction role panel not found" }, { status: 404 });
+      return NextResponse.json({ error: "找不到自助身分組面板" }, { status: 404 });
     }
   }
 

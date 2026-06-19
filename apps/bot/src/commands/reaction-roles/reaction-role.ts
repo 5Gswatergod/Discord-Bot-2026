@@ -7,20 +7,26 @@ import { isGuildModuleEnabled } from "../../lib/modules";
 export const reactionRoleCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("reaction-role")
-    .setDescription("Manage reaction role panels.")
+    .setNameLocalizations({ "zh-TW": "自助身分組" })
+    .setDescription("管理自助身分組面板。")
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
         .setName("publish")
-        .setDescription("Publish a configured reaction role panel.")
+        .setNameLocalizations({ "zh-TW": "發布" })
+        .setDescription("發佈已設定的自助身分組面板。")
         .addStringOption((option) =>
-          option.setName("panel_id").setDescription("Panel ID from the dashboard.").setRequired(true)
+          option
+            .setName("panel_id")
+            .setNameLocalizations({ "zh-TW": "面板_id" })
+            .setDescription("管理面板中的面板 ID。")
+            .setRequired(true)
         )
     ),
   async execute(interaction, context) {
     if (!interaction.guildId) {
       await interaction.reply({
-        content: "This command can only be used inside a server.",
+        content: "此指令只能在伺服器內使用。",
         ephemeral: true
       });
       return;
@@ -28,7 +34,7 @@ export const reactionRoleCommand: BotCommand = {
 
     if (!interaction.memberPermissions?.any([PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild])) {
       await interaction.reply({
-        content: "You need Manage Server permission to publish reaction role panels.",
+        content: "你需要「管理伺服器」權限才能發佈自助身分組面板。",
         ephemeral: true
       });
       return;
@@ -38,7 +44,7 @@ export const reactionRoleCommand: BotCommand = {
 
     if (!enabled) {
       await interaction.reply({
-        content: "Reaction Roles is disabled for this server.",
+        content: "此伺服器已停用自助身分組功能。",
         ephemeral: true
       });
       return;
@@ -49,14 +55,14 @@ export const reactionRoleCommand: BotCommand = {
 
     if (!message) {
       await interaction.reply({
-        content: "Could not publish that panel. Check the panel ID and channel permissions.",
+        content: "無法發佈此面板，請檢查面板 ID 與頻道權限。",
         ephemeral: true
       });
       return;
     }
 
     await interaction.reply({
-      content: `Published reaction role panel: ${message.url}`,
+      content: `已發佈自助身分組面板：${message.url}`,
       ephemeral: true
     });
   }

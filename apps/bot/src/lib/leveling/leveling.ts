@@ -107,7 +107,7 @@ export async function handleLevelingMessage(message: Message<true>, context: Com
         continue;
       }
 
-      await member.roles.add(reward.roleId, `Level reward ${reward.level}`).catch((error) => {
+      await member.roles.add(reward.roleId, `等級 ${reward.level} 獎勵`).catch((error) => {
         context.logger.warn("Failed to assign level reward", {
           guildId: message.guild.id,
           userId: message.author.id,
@@ -164,27 +164,27 @@ export function buildRankEmbed(input: {
 }) {
   return new EmbedBuilder()
     .setColor(0x24b47e)
-    .setTitle(`${input.username}'s rank`)
+    .setTitle(`${input.username} 的等級`)
     .setThumbnail(input.avatarUrl)
     .addFields(
       {
-        name: "Level",
+        name: "等級",
         value: String(input.level),
         inline: true
       },
       {
-        name: "XP",
-        value: input.xp.toLocaleString(),
+        name: "經驗值",
+        value: input.xp.toLocaleString("zh-TW"),
         inline: true
       },
       {
-        name: "Rank",
+        name: "排名",
         value: `#${input.rank}`,
         inline: true
       },
       {
-        name: "Messages",
-        value: input.messageCount.toLocaleString(),
+        name: "訊息數",
+        value: input.messageCount.toLocaleString("zh-TW"),
         inline: true
       }
     );

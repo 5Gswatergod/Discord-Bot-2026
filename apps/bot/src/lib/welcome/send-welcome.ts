@@ -12,7 +12,7 @@ function renderMemberTemplate(
 ) {
   return formatTemplate(template, {
     user: `<@${member.id}>`,
-    username: member.user?.username ?? "Unknown",
+    username: member.user?.username ?? "未知使用者",
     server: member.guild.name,
     memberCount: memberCount ?? member.guild.memberCount
   });
@@ -86,7 +86,7 @@ export async function handleWelcomeMemberAdd(member: GuildMember, context: Comma
   }
 
   if (config.autoRoleId) {
-    await member.roles.add(config.autoRoleId, "GuildForge welcome auto role").catch((error) => {
+    await member.roles.add(config.autoRoleId, "GuildForge 歡迎模組自動身分組").catch((error) => {
       context.logger.warn("Failed to assign welcome auto role", {
         guildId: member.guild.id,
         userId: member.id,
@@ -101,7 +101,7 @@ export async function handleWelcomeMemberAdd(member: GuildMember, context: Comma
     message: config.welcomeMessage,
     useEmbed: config.useEmbed,
     embedColor: config.embedColor,
-    title: "Welcome"
+    title: "歡迎加入"
   });
 }
 
@@ -130,6 +130,6 @@ export async function handleWelcomeMemberRemove(
     message: config.goodbyeMessage,
     useEmbed: config.useEmbed,
     embedColor: config.embedColor,
-    title: "Goodbye"
+    title: "成員離開"
   });
 }

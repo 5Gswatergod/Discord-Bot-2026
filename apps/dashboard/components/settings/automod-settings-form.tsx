@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import {
+  autoModPunishmentLabels,
   autoModPunishments,
   autoModTriggerLabels,
   type AutoModRuleInput,
@@ -68,11 +69,11 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
     });
 
     if (!response.ok) {
-      setMessage("Failed to save AutoMod settings.");
+      setMessage("無法儲存自動管理設定。");
       return;
     }
 
-    setMessage("Saved.");
+    setMessage("已儲存。");
     startTransition(() => router.refresh());
   }
 
@@ -101,7 +102,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
             >
               {autoModPunishments.map((punishment) => (
                 <option key={punishment} value={punishment}>
-                  {punishment}
+                  {autoModPunishmentLabels[punishment]}
                 </option>
               ))}
             </select>
@@ -109,7 +110,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
 
           {rule.trigger === "BANNED_WORD" ? (
             <label className="grid gap-2 text-sm font-medium">
-              Words
+              禁用詞
               <Input
                 value={rule.pattern.words.join(", ")}
                 onChange={(event) =>
@@ -127,7 +128,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
           {rule.trigger === "SPAM" ? (
             <div className="grid gap-3 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium">
-                Max messages
+                訊息數量上限
                 <Input
                   type="number"
                   value={rule.pattern.maxMessages}
@@ -137,7 +138,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
                 />
               </label>
               <label className="grid gap-2 text-sm font-medium">
-                Window seconds
+                偵測時間範圍（秒）
                 <Input
                   type="number"
                   value={rule.pattern.windowSeconds}
@@ -151,7 +152,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
 
           {rule.trigger === "MASS_MENTION" ? (
             <label className="grid gap-2 text-sm font-medium">
-              Max mentions
+              提及數量上限
               <Input
                 type="number"
                 value={rule.pattern.maxMentions}
@@ -164,7 +165,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
 
           {rule.trigger === "REPEATED_MESSAGE" ? (
             <label className="grid gap-2 text-sm font-medium">
-              Repeated message limit
+              重複訊息次數上限
               <Input
                 type="number"
                 value={rule.pattern.repeatedLimit}
@@ -178,7 +179,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
           {rule.trigger === "CAPS_LOCK" ? (
             <div className="grid gap-3 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium">
-                Minimum letters
+                最少字母數
                 <Input
                   type="number"
                   value={rule.pattern.capsMinLength}
@@ -188,7 +189,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
                 />
               </label>
               <label className="grid gap-2 text-sm font-medium">
-                Caps ratio
+                大寫字母比例
                 <Input
                   type="number"
                   step="0.05"
@@ -205,7 +206,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
 
           <div className="grid gap-3 md:grid-cols-3">
             <label className="grid gap-2 text-sm font-medium">
-              Timeout seconds
+              禁言秒數
               <Input
                 type="number"
                 value={rule.punishmentDurationSeconds ?? ""}
@@ -217,7 +218,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Ignored channels
+              忽略的頻道
               <Input
                 value={joinIds(rule.ignoredChannelIds)}
                 onChange={(event) =>
@@ -226,7 +227,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Ignored roles
+              忽略的身分組
               <Input
                 value={joinIds(rule.ignoredRoleIds)}
                 onChange={(event) =>
@@ -240,7 +241,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           <Save size={16} aria-hidden="true" />
-          Save
+          儲存
         </Button>
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       </div>

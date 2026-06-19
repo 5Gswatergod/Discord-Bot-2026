@@ -19,8 +19,8 @@ type WelcomeSettingsFormProps = {
 
 function renderPreview(template: string, guildName: string, memberCount: number | null) {
   return template
-    .replaceAll("{user}", "@NewMember")
-    .replaceAll("{username}", "NewMember")
+    .replaceAll("{user}", "@新成員")
+    .replaceAll("{username}", "新成員")
     .replaceAll("{server}", guildName)
     .replaceAll("{memberCount}", String(memberCount ?? 0));
 }
@@ -70,18 +70,18 @@ export function WelcomeSettingsForm({
     });
 
     if (!response.ok) {
-      setMessage("Failed to save welcome settings.");
+      setMessage("無法儲存歡迎訊息設定。");
       return;
     }
 
-    setMessage("Saved.");
+    setMessage("已儲存。");
     startTransition(() => router.refresh());
   }
 
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
       <label className="flex items-center justify-between gap-3 rounded-md border border-border p-3 text-sm font-medium">
-        Enable welcome module
+        啟用歡迎訊息模組
         <input
           type="checkbox"
           className="h-4 w-4 accent-primary"
@@ -91,34 +91,34 @@ export function WelcomeSettingsForm({
       </label>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-medium">
-          Welcome channel ID
+          歡迎訊息頻道 ID
           <Input value={welcomeChannelId} onChange={(event) => setWelcomeChannelId(event.target.value)} />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          Goodbye channel ID
+          離開訊息頻道 ID
           <Input value={goodbyeChannelId} onChange={(event) => setGoodbyeChannelId(event.target.value)} />
         </label>
       </div>
       <label className="grid gap-2 text-sm font-medium">
-        Welcome message
+        歡迎訊息
         <Textarea value={welcomeMessage} onChange={(event) => setWelcomeMessage(event.target.value)} />
       </label>
       <label className="grid gap-2 text-sm font-medium">
-        Goodbye message
+        離開訊息
         <Textarea value={goodbyeMessage} onChange={(event) => setGoodbyeMessage(event.target.value)} />
       </label>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-medium">
-          Auto role ID
+          自動指派身分組 ID
           <Input value={autoRoleId} onChange={(event) => setAutoRoleId(event.target.value)} />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          Embed color
+          嵌入訊息顏色
           <Input type="color" value={embedColor} onChange={(event) => setEmbedColor(event.target.value)} />
         </label>
       </div>
       <label className="flex items-center justify-between gap-3 rounded-md border border-border p-3 text-sm font-medium">
-        Send as embed
+        使用嵌入訊息格式
         <input
           type="checkbox"
           className="h-4 w-4 accent-primary"
@@ -132,7 +132,7 @@ export function WelcomeSettingsForm({
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           <Save size={16} aria-hidden="true" />
-          Save
+          儲存
         </Button>
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       </div>

@@ -17,15 +17,15 @@ export async function handleVoiceStateUpdate(
   if (!oldState.channelId && newState.channelId) {
     const embed = new EmbedBuilder()
       .setColor(0x22c55e)
-      .setTitle("Voice joined")
+      .setTitle("加入語音頻道")
       .addFields(
         {
-          name: "Member",
+          name: "成員",
           value: `<@${newState.id}>`,
           inline: true
         },
         {
-          name: "Channel",
+          name: "頻道",
           value: `<#${newState.channelId}>`,
           inline: true
         }
@@ -41,15 +41,15 @@ export async function handleVoiceStateUpdate(
   if (oldState.channelId && !newState.channelId) {
     const embed = new EmbedBuilder()
       .setColor(0xf97316)
-      .setTitle("Voice left")
+      .setTitle("離開語音頻道")
       .addFields(
         {
-          name: "Member",
+          name: "成員",
           value: `<@${oldState.id}>`,
           inline: true
         },
         {
-          name: "Channel",
+          name: "頻道",
           value: `<#${oldState.channelId}>`,
           inline: true
         }

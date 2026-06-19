@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = levelingUpdateSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid leveling settings" }, { status: 400 });
+    return NextResponse.json({ error: "等級設定格式不正確" }, { status: 400 });
   }
 
   const { rewards, ...settings } = parsed.data;

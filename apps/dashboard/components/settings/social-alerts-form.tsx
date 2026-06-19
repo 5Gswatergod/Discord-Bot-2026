@@ -57,18 +57,18 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
     });
 
     if (!response.ok) {
-      setMessage("Failed to save social alerts.");
+      setMessage("無法儲存社群通知。");
       return;
     }
 
-    setMessage("Saved.");
+    setMessage("已儲存。");
     startTransition(() => router.refresh());
   }
 
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">Alerts</p>
+        <p className="text-sm font-medium">通知來源</p>
         <Button
           type="button"
           size="sm"
@@ -76,7 +76,7 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
           onClick={() => setLocalAlerts((current) => [...current, blankAlert()])}
         >
           <Plus size={14} aria-hidden="true" />
-          Add
+          新增
         </Button>
       </div>
       {localAlerts.map((alert, index) => (
@@ -89,7 +89,7 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
                 checked={alert.enabled}
                 onChange={(event) => updateAlert(index, { enabled: event.target.checked })}
               />
-              Enabled
+              已啟用
             </label>
             <Button
               type="button"
@@ -102,7 +102,7 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
           </div>
           <div className="grid gap-3 md:grid-cols-[160px_1fr_1fr]">
             <label className="grid gap-2 text-sm font-medium">
-              Type
+              類型
               <select
                 className="h-10 rounded-md border border-border bg-white px-3 text-sm"
                 value={alert.type}
@@ -122,14 +122,14 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
               </select>
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Source ID
+              來源 ID
               <Input
                 value={alert.sourceId}
                 onChange={(event) => updateAlert(index, { sourceId: event.target.value })}
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Channel ID
+              頻道 ID
               <Input
                 value={alert.channelId}
                 onChange={(event) => updateAlert(index, { channelId: event.target.value })}
@@ -138,14 +138,14 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
           </div>
           <div className="grid gap-3 md:grid-cols-[1fr_150px]">
             <label className="grid gap-2 text-sm font-medium">
-              Source URL
+              來源網址
               <Input
                 value={alert.sourceUrl}
                 onChange={(event) => updateAlert(index, { sourceUrl: event.target.value })}
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Interval
+              檢查間隔（秒）
               <Input
                 type="number"
                 min={60}
@@ -156,7 +156,7 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
             </label>
           </div>
           <label className="grid gap-2 text-sm font-medium">
-            Message template
+            通知訊息範本
             <Textarea
               value={alert.messageTemplate}
               onChange={(event) => updateAlert(index, { messageTemplate: event.target.value })}
@@ -167,7 +167,7 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           <Save size={16} aria-hidden="true" />
-          Save
+          儲存
         </Button>
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       </div>

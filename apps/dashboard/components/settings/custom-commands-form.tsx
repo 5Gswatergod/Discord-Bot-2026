@@ -25,9 +25,9 @@ function splitIds(value: string) {
 
 function blankCommand(): CustomCommandInput {
   return {
-    name: "hello",
+    name: "nihao",
     description: "",
-    responseText: "Hello {user}!",
+    responseText: "你好，{user}！",
     cooldownSeconds: 5,
     allowedRoleIds: [],
     allowedChannelIds: [],
@@ -67,22 +67,22 @@ export function CustomCommandsForm({ guildId, commandPrefix, commands }: CustomC
     });
 
     if (!response.ok) {
-      setMessage("Failed to save custom commands.");
+      setMessage("無法儲存自訂指令。");
       return;
     }
 
-    setMessage("Saved.");
+    setMessage("已儲存。");
     startTransition(() => router.refresh());
   }
 
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
       <label className="grid max-w-xs gap-2 text-sm font-medium">
-        Prefix
+        指令前綴
         <Input value={prefix} onChange={(event) => setPrefix(event.target.value)} />
       </label>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">Commands</p>
+        <p className="text-sm font-medium">指令</p>
         <Button
           type="button"
           size="sm"
@@ -90,7 +90,7 @@ export function CustomCommandsForm({ guildId, commandPrefix, commands }: CustomC
           onClick={() => setLocalCommands((current) => [...current, blankCommand()])}
         >
           <Plus size={14} aria-hidden="true" />
-          Add
+          新增
         </Button>
       </div>
       {localCommands.map((command, index) => (
@@ -103,7 +103,7 @@ export function CustomCommandsForm({ guildId, commandPrefix, commands }: CustomC
                 checked={command.enabled}
                 onChange={(event) => updateCommand(index, { enabled: event.target.checked })}
               />
-              Enabled
+              已啟用
             </label>
             <Button
               type="button"
@@ -116,21 +116,21 @@ export function CustomCommandsForm({ guildId, commandPrefix, commands }: CustomC
           </div>
           <div className="grid gap-3 md:grid-cols-[1fr_1fr_130px]">
             <label className="grid gap-2 text-sm font-medium">
-              Name
+              名稱
               <Input
                 value={command.name}
                 onChange={(event) => updateCommand(index, { name: event.target.value })}
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Description
+              說明
               <Input
                 value={command.description ?? ""}
                 onChange={(event) => updateCommand(index, { description: event.target.value })}
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Cooldown
+              冷卻秒數
               <Input
                 type="number"
                 min={0}
@@ -142,7 +142,7 @@ export function CustomCommandsForm({ guildId, commandPrefix, commands }: CustomC
             </label>
           </div>
           <label className="grid gap-2 text-sm font-medium">
-            Response
+            回覆內容
             <Textarea
               value={command.responseText}
               onChange={(event) => updateCommand(index, { responseText: event.target.value })}
@@ -150,7 +150,7 @@ export function CustomCommandsForm({ guildId, commandPrefix, commands }: CustomC
           </label>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="grid gap-2 text-sm font-medium">
-              Allowed role IDs
+              允許的身分組 ID
               <Input
                 value={command.allowedRoleIds.join(", ")}
                 onChange={(event) =>
@@ -159,7 +159,7 @@ export function CustomCommandsForm({ guildId, commandPrefix, commands }: CustomC
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Allowed channel IDs
+              允許的頻道 ID
               <Input
                 value={command.allowedChannelIds.join(", ")}
                 onChange={(event) =>
@@ -173,7 +173,7 @@ export function CustomCommandsForm({ guildId, commandPrefix, commands }: CustomC
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           <Save size={16} aria-hidden="true" />
-          Save
+          儲存
         </Button>
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       </div>

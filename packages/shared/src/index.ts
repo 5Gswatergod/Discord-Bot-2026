@@ -16,29 +16,29 @@ export const moduleKeys = [
 export type GuildModuleKey = (typeof moduleKeys)[number];
 
 export const moduleLabels: Record<GuildModuleKey, string> = {
-  MODERATION: "Moderation",
-  AUTO_MODERATION: "Auto Moderation",
-  LEVELING: "Leveling",
-  WELCOME: "Welcome",
-  REACTION_ROLES: "Reaction Roles",
-  CUSTOM_COMMANDS: "Custom Commands",
-  LOGGING: "Logging",
-  GIVEAWAYS: "Giveaways",
-  POLLS: "Polls",
-  SOCIAL_ALERTS: "Social Alerts"
+  MODERATION: "管理功能",
+  AUTO_MODERATION: "自動管理",
+  LEVELING: "等級與經驗值",
+  WELCOME: "歡迎與離開訊息",
+  REACTION_ROLES: "自助身分組",
+  CUSTOM_COMMANDS: "自訂指令",
+  LOGGING: "伺服器紀錄",
+  GIVEAWAYS: "抽獎",
+  POLLS: "投票",
+  SOCIAL_ALERTS: "社群通知"
 };
 
 export const moduleDescriptions: Record<GuildModuleKey, string> = {
-  MODERATION: "Ban, kick, timeout, warnings, slowmode, lock, and audit trails.",
-  AUTO_MODERATION: "Message filters, spam detection, mention caps, and automated punishments.",
-  LEVELING: "XP, rank cards, leaderboards, role rewards, and anti-farming cooldowns.",
-  WELCOME: "Join and leave messages with templates, embeds, and auto roles.",
-  REACTION_ROLES: "Reaction and button role panels with single or multi-select modes.",
-  CUSTOM_COMMANDS: "Configurable slash or prefix commands with cooldowns and variables.",
-  LOGGING: "Guild event logging for messages, members, roles, channels, voice, and moderation.",
-  GIVEAWAYS: "Button-based giveaways with role requirements, rerolls, and announcements.",
-  POLLS: "Button polls with public or anonymous results.",
-  SOCIAL_ALERTS: "YouTube, Twitch, and RSS notifications checked by scheduled workers."
+  MODERATION: "封鎖、踢除、禁言、警告、慢速模式、頻道鎖定與管理紀錄。",
+  AUTO_MODERATION: "訊息過濾、洗頻偵測、提及限制與自動處罰。",
+  LEVELING: "經驗值、等級卡、排行榜、身分組獎勵與防洗經驗冷卻。",
+  WELCOME: "使用範本、嵌入訊息與自動身分組處理加入及離開通知。",
+  REACTION_ROLES: "使用表情反應或按鈕領取身分組，支援單選與多選。",
+  CUSTOM_COMMANDS: "可設定冷卻、變數與權限的自訂前綴指令。",
+  LOGGING: "記錄訊息、成員、身分組、頻道、語音與管理事件。",
+  GIVEAWAYS: "使用按鈕參加抽獎，支援身分組限制、重新抽取與得獎公告。",
+  POLLS: "使用按鈕投票，支援公開或匿名結果。",
+  SOCIAL_ALERTS: "定時檢查 YouTube、Twitch 與 RSS 並發送通知。"
 };
 
 export const discordPermissionBits = {
@@ -89,19 +89,19 @@ export const logEvents = [
 export type GuildLogEvent = (typeof logEvents)[number];
 
 export const logEventLabels: Record<GuildLogEvent, string> = {
-  MESSAGE_DELETE: "Message deleted",
-  MESSAGE_UPDATE: "Message edited",
-  MEMBER_JOIN: "Member joined",
-  MEMBER_LEAVE: "Member left",
-  MEMBER_BAN: "Member banned",
-  MEMBER_UNBAN: "Member unbanned",
-  ROLE_CREATE: "Role created",
-  ROLE_DELETE: "Role deleted",
-  CHANNEL_CREATE: "Channel created",
-  CHANNEL_DELETE: "Channel deleted",
-  VOICE_JOIN: "Voice joined",
-  VOICE_LEAVE: "Voice left",
-  MODERATION_ACTION: "Moderation action"
+  MESSAGE_DELETE: "訊息已刪除",
+  MESSAGE_UPDATE: "訊息已編輯",
+  MEMBER_JOIN: "成員加入",
+  MEMBER_LEAVE: "成員離開",
+  MEMBER_BAN: "成員遭封鎖",
+  MEMBER_UNBAN: "成員解除封鎖",
+  ROLE_CREATE: "身分組已建立",
+  ROLE_DELETE: "身分組已刪除",
+  CHANNEL_CREATE: "頻道已建立",
+  CHANNEL_DELETE: "頻道已刪除",
+  VOICE_JOIN: "加入語音頻道",
+  VOICE_LEAVE: "離開語音頻道",
+  MODERATION_ACTION: "管理操作"
 };
 
 const optionalSnowflakeSchema = z
@@ -120,9 +120,9 @@ export type ModerationSettings = z.infer<typeof moderationSettingsSchema>;
 export const welcomeSettingsSchema = z.object({
   enabled: z.boolean().default(false),
   welcomeChannelId: optionalSnowflakeSchema.default(null),
-  welcomeMessage: z.string().min(1).max(1_500).default("Welcome {user} to {server}!"),
+  welcomeMessage: z.string().min(1).max(1_500).default("歡迎 {user} 加入 {server}！"),
   goodbyeChannelId: optionalSnowflakeSchema.default(null),
-  goodbyeMessage: z.string().min(1).max(1_500).default("{username} left {server}."),
+  goodbyeMessage: z.string().min(1).max(1_500).default("{username} 離開了 {server}。"),
   autoRoleId: optionalSnowflakeSchema.default(null),
   useEmbed: z.boolean().default(true),
   embedColor: z
@@ -159,7 +159,7 @@ export const levelingSettingsSchema = z.object({
     .string()
     .min(1)
     .max(1_500)
-    .default("{user} reached level {level} in {server}!"),
+    .default("{user} 在 {server} 升到了等級 {level}！"),
   ignoredChannelIds: z.array(snowflakeSchema).default([])
 });
 
@@ -212,16 +212,26 @@ export const autoModTriggers = [
 export type AutoModTriggerKey = (typeof autoModTriggers)[number];
 
 export const autoModTriggerLabels: Record<AutoModTriggerKey, string> = {
-  BANNED_WORD: "Banned words",
-  SPAM: "Spam",
-  LINK: "Links",
-  MASS_MENTION: "Mass mentions",
-  INVITE_LINK: "Discord invites",
-  REPEATED_MESSAGE: "Repeated messages",
-  CAPS_LOCK: "Caps lock"
+  BANNED_WORD: "禁用詞",
+  SPAM: "洗頻",
+  LINK: "外部連結",
+  MASS_MENTION: "大量提及",
+  INVITE_LINK: "Discord 邀請連結",
+  REPEATED_MESSAGE: "重複訊息",
+  CAPS_LOCK: "大量大寫字母"
 };
 
 export const autoModPunishments = ["DELETE_MESSAGE", "WARN", "TIMEOUT", "KICK", "BAN"] as const;
+
+export type AutoModPunishmentKey = (typeof autoModPunishments)[number];
+
+export const autoModPunishmentLabels: Record<AutoModPunishmentKey, string> = {
+  DELETE_MESSAGE: "刪除訊息",
+  WARN: "警告",
+  TIMEOUT: "禁言",
+  KICK: "踢除",
+  BAN: "封鎖"
+};
 
 export const autoModRuleInputSchema = z.object({
   trigger: z.enum(autoModTriggers),
@@ -342,13 +352,13 @@ export type SocialAlertTypeKey = (typeof socialAlertTypes)[number];
 export const socialAlertTypeLabels: Record<SocialAlertTypeKey, string> = {
   YOUTUBE: "YouTube",
   TWITCH: "Twitch",
-  RSS: "RSS"
+  RSS: "RSS 訂閱"
 };
 
 export const defaultSocialAlertTemplates: Record<SocialAlertTypeKey, string> = {
-  YOUTUBE: "New YouTube upload from {source}: **{title}**\n{url}",
-  TWITCH: "{author} is live on Twitch: **{title}**\n{url}",
-  RSS: "New post from {source}: **{title}**\n{url}"
+  YOUTUBE: "{source} 發布了新的 YouTube 影片：**{title}**\n{url}",
+  TWITCH: "{author} 正在 Twitch 直播：**{title}**\n{url}",
+  RSS: "{source} 發布了新文章：**{title}**\n{url}"
 };
 
 export function buildSocialAlertSourceUrl(
@@ -402,7 +412,7 @@ export const socialAlertInputSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["sourceUrl"],
-        message: "A valid source URL is required for this social alert."
+        message: "此社群通知需要有效的來源網址。"
       });
     }
   });
@@ -421,7 +431,7 @@ export const socialAlertsUpdateSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["alerts", index, "sourceId"],
-          message: "Each source can only be configured once per alert type."
+          message: "每種通知類型只能設定一次相同來源。"
         });
       }
 

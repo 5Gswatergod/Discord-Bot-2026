@@ -14,8 +14,8 @@ export async function handleMessageUpdate(
     return;
   }
 
-  const before = oldMessage.content || "Content unavailable.";
-  const after = newMessage.content || "Content unavailable.";
+  const before = oldMessage.content || "無法取得訊息內容。";
+  const after = newMessage.content || "無法取得訊息內容。";
 
   if (before === after) {
     return;
@@ -23,24 +23,24 @@ export async function handleMessageUpdate(
 
   const embed = new EmbedBuilder()
     .setColor(0x0ea5e9)
-    .setTitle("Message edited")
+    .setTitle("訊息已編輯")
     .addFields(
       {
-        name: "Channel",
+        name: "頻道",
         value: `<#${newMessage.channelId}>`,
         inline: true
       },
       {
-        name: "Author",
-        value: newMessage.author ? `<@${newMessage.author.id}>` : "Unknown",
+        name: "作者",
+        value: newMessage.author ? `<@${newMessage.author.id}>` : "未知使用者",
         inline: true
       },
       {
-        name: "Before",
+        name: "編輯前",
         value: before.slice(0, 700)
       },
       {
-        name: "After",
+        name: "編輯後",
         value: after.slice(0, 700)
       }
     );

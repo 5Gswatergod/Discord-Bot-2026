@@ -21,7 +21,7 @@ export default async function GuildSelectorPage() {
         <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-primary">GuildForge</p>
-            <h1 className="mt-1 text-2xl font-semibold">Servers</h1>
+            <h1 className="mt-1 text-2xl font-semibold">伺服器</h1>
           </div>
           <SignOutButton />
         </header>
@@ -34,7 +34,7 @@ export default async function GuildSelectorPage() {
           </section>
         ) : (
           <section className="rounded-lg border border-border bg-white p-8 text-sm text-muted-foreground shadow-panel">
-            No manageable Discord servers were returned by Discord.
+            Discord 沒有回傳你可管理的伺服器。
           </section>
         )}
       </div>

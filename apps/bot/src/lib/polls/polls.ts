@@ -39,19 +39,19 @@ function buildRows(pollId: string, options: PollOption[], disabled = false) {
 function buildPollEmbed(poll: Poll, options: Array<PollOption & { votes?: number }>) {
   return new EmbedBuilder()
     .setColor(0x0ea5e9)
-    .setTitle("Poll")
+    .setTitle("投票")
     .setDescription(poll.question)
     .addFields(
       ...options.map((option) => ({
         name: option.label,
         value:
           poll.visibility === PollVisibility.PUBLIC
-            ? `${option.votes ?? 0} vote${option.votes === 1 ? "" : "s"}`
-            : "Vote hidden",
+            ? `${option.votes ?? 0} 票`
+            : "票數不公開",
         inline: true
       })),
       {
-        name: "Poll ID",
+        name: "投票 ID",
         value: poll.id
       }
     )
@@ -163,7 +163,7 @@ export async function handlePollButton(interaction: ButtonInteraction, context: 
 
   if (!poll || (poll.endsAt && poll.endsAt <= new Date())) {
     await interaction.reply({
-      content: "This poll is closed.",
+      content: "此投票已結束。",
       ephemeral: true
     });
     return true;
@@ -173,7 +173,7 @@ export async function handlePollButton(interaction: ButtonInteraction, context: 
 
   if (!enabled) {
     await interaction.reply({
-      content: "Polls are disabled for this server.",
+      content: "此伺服器已停用投票功能。",
       ephemeral: true
     });
     return true;
@@ -202,8 +202,8 @@ export async function handlePollButton(interaction: ButtonInteraction, context: 
   await interaction.reply({
     content:
       poll.visibility === PollVisibility.PUBLIC
-        ? "Vote saved. The public results were updated."
-        : "Vote saved.",
+        ? "已儲存你的投票，公開結果已更新。"
+        : "已儲存你的投票。",
     ephemeral: true
   });
   return true;

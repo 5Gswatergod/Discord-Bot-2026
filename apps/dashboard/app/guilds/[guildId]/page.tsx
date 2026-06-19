@@ -46,6 +46,54 @@ type GuildOverviewPageProps = {
   };
 };
 
+const auditActionLabels: Record<string, string> = {
+  BOT_JOINED_GUILD: "機器人加入伺服器",
+  DASHBOARD_MODULE_TOGGLE: "變更功能模組狀態",
+  DASHBOARD_MODERATION_SETTINGS_UPDATE: "更新管理功能設定",
+  DASHBOARD_WELCOME_SETTINGS_UPDATE: "更新歡迎訊息設定",
+  DASHBOARD_LOGGING_SETTINGS_UPDATE: "更新伺服器紀錄設定",
+  DASHBOARD_LEVELING_SETTINGS_UPDATE: "更新等級設定",
+  DASHBOARD_AUTOMOD_SETTINGS_UPDATE: "更新自動管理設定",
+  DASHBOARD_CUSTOM_COMMANDS_UPDATE: "更新自訂指令",
+  DASHBOARD_REACTION_ROLES_UPDATE: "更新自助身分組",
+  DASHBOARD_GIVEAWAYS_UPDATE: "更新抽獎",
+  DASHBOARD_POLLS_UPDATE: "更新投票",
+  DASHBOARD_SOCIAL_ALERTS_UPDATE: "更新社群通知",
+  CUSTOM_COMMAND_RUN: "執行自訂指令",
+  LEVEL_UP: "成員升級"
+};
+
+const moderationAuditLabels: Record<string, string> = {
+  BAN: "封鎖",
+  KICK: "踢除",
+  TIMEOUT: "禁言",
+  WARN: "警告",
+  CLEAR: "清除訊息",
+  MUTE: "靜音",
+  UNMUTE: "解除靜音",
+  SLOWMODE: "慢速模式",
+  LOCK: "鎖定頻道",
+  UNLOCK: "解鎖頻道",
+  AUTOMOD_DELETE_MESSAGE: "自動管理刪除訊息",
+  AUTOMOD_WARN: "自動管理警告",
+  AUTOMOD_TIMEOUT: "自動管理禁言",
+  AUTOMOD_KICK: "自動管理踢除",
+  AUTOMOD_BAN: "自動管理封鎖"
+};
+
+function formatAuditAction(action: string) {
+  if (auditActionLabels[action]) {
+    return auditActionLabels[action];
+  }
+
+  if (action.startsWith("MODERATION_")) {
+    const moderationAction = action.slice("MODERATION_".length);
+    return `管理操作：${moderationAuditLabels[moderationAction] ?? moderationAction}`;
+  }
+
+  return action;
+}
+
 export default async function GuildOverviewPage({ params }: GuildOverviewPageProps) {
   const { guild } = await requireManageableGuild(params.guildId);
   const dbGuild = await prisma.guild.findUnique({
@@ -253,7 +301,7 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <header className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <Button asChild variant="ghost" size="icon">
-              <Link href="/guilds" aria-label="Back to servers">
+              <Link href="/guilds" aria-label="返回伺服器列表">
                 <ArrowLeft size={18} aria-hidden="true" />
               </Link>
             </Button>
@@ -268,13 +316,13 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
               />
             ) : null}
             <div className="min-w-0">
-              <p className="text-sm font-medium text-primary">Server Overview</p>
+              <p className="text-sm font-medium text-primary">伺服器總覽</p>
               <h1 className="truncate text-2xl font-semibold">{guild.name}</h1>
             </div>
           </div>
           <div className="flex gap-2">
             <Badge variant={guild.botJoined ? "default" : "warning"}>
-              {guild.botJoined ? "Bot connected" : "Bot not installed"}
+              {guild.botJoined ? "機器人已連線" : "尚未安裝機器人"}
             </Badge>
             <SignOutButton />
           </div>
@@ -283,17 +331,17 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <section className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle>Members</CardTitle>
-              <CardDescription>Current known server size.</CardDescription>
+              <CardTitle>成員</CardTitle>
+              <CardDescription>目前已知的伺服器成員數。</CardDescription>
             </CardHeader>
             <CardContent className="text-3xl font-semibold">
-              {guild.memberCount?.toLocaleString() ?? "-"}
+              {guild.memberCount?.toLocaleString("zh-TW") ?? "-"}
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Modules</CardTitle>
-              <CardDescription>Enabled module count.</CardDescription>
+              <CardTitle>功能模組</CardTitle>
+              <CardDescription>目前已啟用的模組數量。</CardDescription>
             </CardHeader>
             <CardContent className="text-3xl font-semibold">
               {modules.filter((module) => module.enabled).length}
@@ -301,8 +349,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Audit Events</CardTitle>
-              <CardDescription>Recent dashboard and bot records.</CardDescription>
+              <CardTitle>稽核事件</CardTitle>
+              <CardDescription>近期管理面板與機器人紀錄。</CardDescription>
             </CardHeader>
             <CardContent className="text-3xl font-semibold">
               {dbGuild?.auditLogs.length ?? 0}
@@ -315,9 +363,9 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShieldCheck size={18} aria-hidden="true" />
-                Modules
+                功能模組
               </CardTitle>
-              <CardDescription>Enable or disable each guild module.</CardDescription>
+              <CardDescription>啟用或停用各項伺服器功能。</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
               <ModuleToggleForm guildId={params.guildId} modules={modules} />
@@ -330,7 +378,7 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-medium">{moduleLabels[module.module]}</p>
                       <Badge variant={module.enabled ? "default" : "secondary"}>
-                        {module.enabled ? "Enabled" : "Disabled"}
+                        {module.enabled ? "已啟用" : "已停用"}
                       </Badge>
                     </div>
                     <p className="mt-2 text-sm leading-5 text-muted-foreground">
@@ -346,22 +394,22 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity size={18} aria-hidden="true" />
-                Recent Activity
+                最近活動
               </CardTitle>
-              <CardDescription>Latest guild-scoped audit entries.</CardDescription>
+              <CardDescription>此伺服器最新的稽核紀錄。</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {(dbGuild?.auditLogs ?? []).length > 0 ? (
                 dbGuild?.auditLogs.map((log) => (
                   <div key={log.id} className="rounded-md border border-border p-3">
-                    <p className="text-sm font-medium">{log.action}</p>
+                    <p className="text-sm font-medium">{formatAuditAction(log.action)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {log.createdAt.toLocaleString()}
+                      {log.createdAt.toLocaleString("zh-TW")}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">No audit entries yet.</p>
+                <p className="text-sm text-muted-foreground">目前尚無稽核紀錄。</p>
               )}
             </CardContent>
           </Card>
@@ -370,25 +418,25 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <section className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Moderation</CardTitle>
-              <CardDescription>Role access, mute role, log channel, and defaults.</CardDescription>
+              <CardTitle>管理功能</CardTitle>
+              <CardDescription>設定管理身分組、靜音身分組、紀錄頻道與預設值。</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-5">
               <ModerationSettingsForm guildId={params.guildId} settings={moderationSettings} />
               <div className="space-y-3">
-                <p className="text-sm font-medium">Recent warnings</p>
+                <p className="text-sm font-medium">最近警告</p>
                 {(dbGuild?.warnings ?? []).length > 0 ? (
                   dbGuild?.warnings.map((warning) => (
                     <div key={warning.id} className="rounded-md border border-border p-3 text-sm">
                       <p className="font-medium">
-                        <span className="text-muted-foreground">Target:</span>{" "}
+                        <span className="text-muted-foreground">對象：</span>{" "}
                         {warning.targetUserId}
                       </p>
                       <p className="mt-1 text-muted-foreground">{warning.reason}</p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">No warnings recorded.</p>
+                  <p className="text-sm text-muted-foreground">目前尚無警告紀錄。</p>
                 )}
               </div>
             </CardContent>
@@ -396,8 +444,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
 
           <Card>
             <CardHeader>
-              <CardTitle>Welcome</CardTitle>
-              <CardDescription>Join and leave messages, auto role, and preview.</CardDescription>
+              <CardTitle>歡迎與離開訊息</CardTitle>
+              <CardDescription>設定加入與離開訊息、自動身分組及預覽。</CardDescription>
             </CardHeader>
             <CardContent>
               <WelcomeSettingsForm
@@ -413,8 +461,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <section>
           <Card>
             <CardHeader>
-              <CardTitle>Logging</CardTitle>
-              <CardDescription>Route each guild event to a Discord channel.</CardDescription>
+              <CardTitle>伺服器紀錄</CardTitle>
+              <CardDescription>將各種伺服器事件傳送至指定的 Discord 頻道。</CardDescription>
             </CardHeader>
             <CardContent>
               <LoggingSettingsForm guildId={params.guildId} configs={loggingConfigs} />
@@ -425,8 +473,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <section className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Leveling</CardTitle>
-              <CardDescription>XP rewards, cooldowns, level messages, and role rewards.</CardDescription>
+              <CardTitle>等級與經驗值</CardTitle>
+              <CardDescription>設定經驗值、冷卻時間、升級訊息與身分組獎勵。</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-5">
               <LevelingSettingsForm
@@ -435,7 +483,7 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
                 rewards={levelRewards}
               />
               <div className="space-y-3">
-                <p className="text-sm font-medium">Leaderboard preview</p>
+                <p className="text-sm font-medium">排行榜預覽</p>
                 {(dbGuild?.levelingUsers ?? []).length > 0 ? (
                   dbGuild?.levelingUsers.map((user, index) => (
                     <div key={user.id} className="rounded-md border border-border p-3 text-sm">
@@ -443,12 +491,12 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
                         #{index + 1} {user.userId}
                       </p>
                       <p className="mt-1 text-muted-foreground">
-                        Level {user.level}, {user.xp.toLocaleString()} XP
+                        等級 {user.level}，{user.xp.toLocaleString("zh-TW")} 經驗值
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">No XP records yet.</p>
+                  <p className="text-sm text-muted-foreground">目前尚無經驗值紀錄。</p>
                 )}
               </div>
             </CardContent>
@@ -456,8 +504,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
 
           <Card>
             <CardHeader>
-              <CardTitle>Auto Moderation</CardTitle>
-              <CardDescription>Filters, ignored targets, and automated punishments.</CardDescription>
+              <CardTitle>自動管理</CardTitle>
+              <CardDescription>設定過濾規則、忽略對象與自動處罰。</CardDescription>
             </CardHeader>
             <CardContent>
               <AutoModSettingsForm guildId={params.guildId} rules={autoModRules} />
@@ -468,8 +516,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <section>
           <Card>
             <CardHeader>
-              <CardTitle>Custom Commands</CardTitle>
-              <CardDescription>Prefix command responses with cooldowns and access rules.</CardDescription>
+              <CardTitle>自訂指令</CardTitle>
+              <CardDescription>設定前綴指令回覆、冷卻時間與使用權限。</CardDescription>
             </CardHeader>
             <CardContent>
               <CustomCommandsForm
@@ -484,8 +532,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <section>
           <Card>
             <CardHeader>
-              <CardTitle>Reaction Roles</CardTitle>
-              <CardDescription>Build button and reaction panels for role assignment.</CardDescription>
+              <CardTitle>自助身分組</CardTitle>
+              <CardDescription>建立按鈕或表情反應面板，讓成員自行領取身分組。</CardDescription>
             </CardHeader>
             <CardContent>
               <ReactionRolesForm guildId={params.guildId} panels={reactionRolePanels} />
@@ -496,8 +544,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <section className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Giveaways</CardTitle>
-              <CardDescription>Manage prize, winner count, role gate, and end time.</CardDescription>
+              <CardTitle>抽獎</CardTitle>
+              <CardDescription>管理獎品、得獎人數、身分組限制與結束時間。</CardDescription>
             </CardHeader>
             <CardContent>
               <GiveawaysForm guildId={params.guildId} giveaways={giveaways} />
@@ -506,8 +554,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
 
           <Card>
             <CardHeader>
-              <CardTitle>Polls</CardTitle>
-              <CardDescription>Configure button polls with public or anonymous results.</CardDescription>
+              <CardTitle>投票</CardTitle>
+              <CardDescription>設定按鈕投票與公開或匿名結果。</CardDescription>
             </CardHeader>
             <CardContent>
               <PollsForm guildId={params.guildId} polls={polls} />
@@ -518,8 +566,8 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <section>
           <Card>
             <CardHeader>
-              <CardTitle>Social Alerts</CardTitle>
-              <CardDescription>YouTube, Twitch, and RSS notifications routed to Discord.</CardDescription>
+              <CardTitle>社群通知</CardTitle>
+              <CardDescription>將 YouTube、Twitch 與 RSS 更新通知傳送至 Discord。</CardDescription>
             </CardHeader>
             <CardContent>
               <SocialAlertsForm guildId={params.guildId} alerts={socialAlerts} />

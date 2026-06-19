@@ -8,9 +8,9 @@ import { sendGuildLog } from "../lib/logging/send-log";
 export async function handleChannelCreate(channel: GuildBasedChannel, context: CommandContext) {
   const embed = new EmbedBuilder()
     .setColor(0x22c55e)
-    .setTitle("Channel created")
+    .setTitle("頻道已建立")
     .addFields({
-      name: "Channel",
+      name: "頻道",
       value: `${channel.name} (${channel.id})`
     });
 

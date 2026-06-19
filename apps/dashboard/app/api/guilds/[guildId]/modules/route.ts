@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = moduleToggleSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid module payload" }, { status: 400 });
+    return NextResponse.json({ error: "模組設定格式不正確" }, { status: 400 });
   }
 
   const input = parsed.data;

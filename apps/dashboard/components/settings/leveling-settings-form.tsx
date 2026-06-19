@@ -58,11 +58,11 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
     });
 
     if (!response.ok) {
-      setMessage("Failed to save leveling settings.");
+      setMessage("無法儲存等級設定。");
       return;
     }
 
-    setMessage("Saved.");
+    setMessage("已儲存。");
     startTransition(() => router.refresh());
   }
 
@@ -70,7 +70,7 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
     <form className="grid gap-4" onSubmit={onSubmit}>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-medium">
-          XP per message
+          每則訊息經驗值
           <Input
             type="number"
             min={1}
@@ -80,7 +80,7 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
           />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          Cooldown seconds
+          冷卻秒數
           <Input
             type="number"
             min={5}
@@ -92,18 +92,18 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-medium">
-          Formula
+          計算公式
           <select
             className="h-10 rounded-md border border-border bg-white px-3 text-sm"
             value={formula}
             onChange={(event) => setFormula(event.target.value as typeof formula)}
           >
-            <option value="QUADRATIC">Quadratic</option>
-            <option value="LINEAR">Linear</option>
+            <option value="QUADRATIC">二次成長</option>
+            <option value="LINEAR">線性成長</option>
           </select>
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          Base XP
+          基礎經驗值
           <Input
             type="number"
             min={25}
@@ -114,20 +114,20 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
         </label>
       </div>
       <label className="grid gap-2 text-sm font-medium">
-        Level up channel ID
+        升級通知頻道 ID
         <Input value={levelUpChannelId} onChange={(event) => setLevelUpChannelId(event.target.value)} />
       </label>
       <label className="grid gap-2 text-sm font-medium">
-        Level up message
+        升級訊息
         <Textarea value={levelUpMessage} onChange={(event) => setLevelUpMessage(event.target.value)} />
       </label>
       <label className="grid gap-2 text-sm font-medium">
-        Ignored channel IDs
+        忽略的頻道 ID
         <Input value={ignoredChannelIds} onChange={(event) => setIgnoredChannelIds(event.target.value)} />
       </label>
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-medium">Role rewards</p>
+          <p className="text-sm font-medium">身分組獎勵</p>
           <Button
             type="button"
             size="sm"
@@ -135,13 +135,13 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
             onClick={() => setLocalRewards((current) => [...current, { level: 1, roleId: "", stackable: true }])}
           >
             <Plus size={14} aria-hidden="true" />
-            Add
+            新增
           </Button>
         </div>
         {localRewards.map((reward, index) => (
           <div key={`${reward.level}-${reward.roleId}-${index}`} className="grid gap-2 rounded-md border border-border p-3 md:grid-cols-[90px_1fr_auto_auto] md:items-end">
             <label className="grid gap-2 text-sm font-medium">
-              Level
+              等級
               <Input
                 type="number"
                 min={1}
@@ -156,7 +156,7 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Role ID
+              身分組 ID
               <Input
                 value={reward.roleId}
                 onChange={(event) =>
@@ -181,7 +181,7 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
                   )
                 }
               />
-              Stack
+              可累加
             </label>
             <Button
               type="button"
@@ -197,7 +197,7 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           <Save size={16} aria-hidden="true" />
-          Save
+          儲存
         </Button>
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       </div>

@@ -7,7 +7,7 @@ export async function handleReady(client: Client<true>, context: CommandContext)
   client.user.setPresence({
     activities: [
       {
-        name: "modular guild tools",
+        name: "伺服器管理工具",
         type: ActivityType.Watching
       }
     ],

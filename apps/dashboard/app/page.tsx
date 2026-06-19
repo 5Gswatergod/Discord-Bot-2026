@@ -12,13 +12,13 @@ type HomePageProps = {
 };
 
 const authErrorMessages: Record<string, string> = {
-  OAuthSignin: "Discord sign-in could not be started. Check the OAuth application settings.",
+  OAuthSignin: "無法開始 Discord 登入，請檢查 OAuth 應用程式設定。",
   OAuthCallback:
-    "Discord rejected or could not complete the OAuth callback. Check the Client Secret and exact redirect URL.",
-  OAuthCreateAccount: "The Discord account could not be stored.",
-  Callback: "The authentication callback failed.",
-  OAuthAccountNotLinked: "This Discord account is already linked to another sign-in method.",
-  SessionRequired: "Your session has expired. Sign in again."
+    "Discord 拒絕或無法完成 OAuth 回呼，請檢查用戶端密鑰與完整的重新導向網址。",
+  OAuthCreateAccount: "無法儲存 Discord 帳號。",
+  Callback: "驗證回呼失敗。",
+  OAuthAccountNotLinked: "此 Discord 帳號已連結至其他登入方式。",
+  SessionRequired: "登入工作階段已過期，請重新登入。"
 };
 
 export default async function HomePage({ searchParams }: HomePageProps) {
@@ -31,7 +31,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const errorValue = searchParams?.error;
   const errorCode = Array.isArray(errorValue) ? errorValue[0] : errorValue;
   const errorMessage = errorCode
-    ? (authErrorMessages[errorCode] ?? "Discord authentication failed. Check the server logs.")
+    ? (authErrorMessages[errorCode] ?? "Discord 驗證失敗，請檢查伺服器紀錄。")
     : null;
 
   return (
@@ -39,7 +39,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <Card className="w-full max-w-md">
         <CardHeader>
           <h1 className="text-xl font-semibold leading-7">GuildForge</h1>
-          <CardDescription>Discord operations for servers you manage.</CardDescription>
+          <CardDescription>集中管理你擁有權限的 Discord 伺服器。</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           {errorMessage ? (
@@ -47,7 +47,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               role="alert"
               className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900"
             >
-              <p className="font-medium">Discord sign-in failed</p>
+              <p className="font-medium">Discord 登入失敗</p>
               <p className="mt-1">{errorMessage}</p>
               <p className="mt-2 font-mono text-xs">{errorCode}</p>
             </div>

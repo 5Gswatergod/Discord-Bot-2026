@@ -6,15 +6,20 @@ import { buildRankEmbed, getLevelingSettings } from "../../lib/leveling/leveling
 export const rankCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("rank")
-    .setDescription("Show a member's level and rank.")
+    .setNameLocalizations({ "zh-TW": "等級" })
+    .setDescription("顯示成員的等級與排名。")
     .setDMPermission(false)
     .addUserOption((option) =>
-      option.setName("user").setDescription("Member to inspect.").setRequired(false)
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("要查看的成員。")
+        .setRequired(false)
     ),
   async execute(interaction, context) {
     if (!interaction.guildId) {
       await interaction.reply({
-        content: "This command can only be used inside a server.",
+        content: "此指令只能在伺服器內使用。",
         ephemeral: true
       });
       return;
@@ -24,7 +29,7 @@ export const rankCommand: BotCommand = {
 
     if (!enabled) {
       await interaction.reply({
-        content: "Leveling is disabled for this server.",
+        content: "此伺服器已停用等級功能。",
         ephemeral: true
       });
       return;
@@ -42,7 +47,7 @@ export const rankCommand: BotCommand = {
 
     if (!record) {
       await interaction.reply({
-        content: `${user.tag} has not earned XP yet.`,
+        content: `${user.tag} 尚未獲得任何經驗值。`,
         ephemeral: true
       });
       return;
@@ -86,12 +91,13 @@ export const rankCommand: BotCommand = {
 export const leaderboardCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("leaderboard")
-    .setDescription("Show the server XP leaderboard.")
+    .setNameLocalizations({ "zh-TW": "排行榜" })
+    .setDescription("顯示伺服器經驗值排行榜。")
     .setDMPermission(false),
   async execute(interaction, context) {
     if (!interaction.guildId) {
       await interaction.reply({
-        content: "This command can only be used inside a server.",
+        content: "此指令只能在伺服器內使用。",
         ephemeral: true
       });
       return;
@@ -101,7 +107,7 @@ export const leaderboardCommand: BotCommand = {
 
     if (!enabled) {
       await interaction.reply({
-        content: "Leveling is disabled for this server.",
+        content: "此伺服器已停用等級功能。",
         ephemeral: true
       });
       return;
@@ -124,7 +130,7 @@ export const leaderboardCommand: BotCommand = {
 
     if (users.length === 0) {
       await interaction.reply({
-        content: "No XP has been earned yet.",
+        content: "目前尚無任何經驗值紀錄。",
         ephemeral: true
       });
       return;
@@ -134,7 +140,7 @@ export const leaderboardCommand: BotCommand = {
       content: users
         .map(
           (user, index) =>
-            `#${index + 1} <@${user.userId}> - Level ${user.level}, ${user.xp.toLocaleString()} XP`
+            `#${index + 1} <@${user.userId}> - 等級 ${user.level}，${user.xp.toLocaleString("zh-TW")} 經驗值`
         )
         .join("\n"),
       ephemeral: true

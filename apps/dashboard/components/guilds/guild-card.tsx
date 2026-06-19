@@ -42,13 +42,13 @@ export function GuildCard({ guild }: GuildCardProps) {
           <div className="min-w-0">
             <CardTitle className="truncate">{guild.name}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              {guild.memberCount?.toLocaleString() ?? "Unknown"} members
+              {guild.memberCount?.toLocaleString("zh-TW") ?? "未知"} 位成員
             </p>
           </div>
         </div>
         <Badge variant={guild.botJoined ? "default" : "warning"}>
           <Bot size={12} aria-hidden="true" />
-          {guild.botJoined ? "Bot ready" : "Invite needed"}
+          {guild.botJoined ? "機器人已就緒" : "尚未邀請"}
         </Badge>
       </CardHeader>
       <CardContent className="flex gap-2">
@@ -56,14 +56,14 @@ export function GuildCard({ guild }: GuildCardProps) {
           <Button asChild className="w-full">
             <Link href={`/guilds/${guild.id}`}>
               <Settings size={16} aria-hidden="true" />
-              Manage
+              管理
             </Link>
           </Button>
         ) : (
           <Button asChild variant="outline" className="w-full">
             <a href={guild.inviteUrl} target="_blank" rel="noreferrer">
               <ExternalLink size={16} aria-hidden="true" />
-              Invite bot
+              邀請機器人
             </a>
           </Button>
         )}

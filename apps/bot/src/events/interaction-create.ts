@@ -31,7 +31,7 @@ export async function handleInteractionCreate(interaction: Interaction, context:
 
   if (!command) {
     await interaction.reply({
-      content: "Unknown command.",
+      content: "未知的指令。",
       ephemeral: true
     });
     return;
@@ -47,7 +47,7 @@ export async function handleInteractionCreate(interaction: Interaction, context:
     });
 
     const response = {
-      content: "Something went wrong while running this command.",
+      content: "執行指令時發生錯誤，請稍後再試。",
       ephemeral: true
     };
 

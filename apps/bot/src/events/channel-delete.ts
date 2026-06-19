@@ -8,9 +8,9 @@ import { sendGuildLog } from "../lib/logging/send-log";
 export async function handleChannelDelete(channel: GuildBasedChannel, context: CommandContext) {
   const embed = new EmbedBuilder()
     .setColor(0xef4444)
-    .setTitle("Channel deleted")
+    .setTitle("頻道已刪除")
     .addFields({
-      name: "Channel",
+      name: "頻道",
       value: `${channel.name} (${channel.id})`
     });
 

@@ -8,9 +8,9 @@ import { sendGuildLog } from "../lib/logging/send-log";
 export async function handleRoleCreate(role: Role, context: CommandContext) {
   const embed = new EmbedBuilder()
     .setColor(0x22c55e)
-    .setTitle("Role created")
+    .setTitle("身分組已建立")
     .addFields({
-      name: "Role",
+      name: "身分組",
       value: `<@&${role.id}> (${role.name})`
     });
 

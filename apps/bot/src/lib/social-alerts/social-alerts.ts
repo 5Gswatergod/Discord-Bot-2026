@@ -88,8 +88,8 @@ function parseFeedEntries(xml: string): SocialAlertEntry[] {
       const videoId = readTag(block, "yt:videoId");
       const url = videoId ? `https://www.youtube.com/watch?v=${videoId}` : readLink(block);
       const id = videoId ?? readTag(block, "id") ?? readTag(block, "guid") ?? url;
-      const title = readTag(block, "title") ?? "Untitled update";
-      const author = readTag(block, "name") ?? readTag(block, "author") ?? "Unknown source";
+      const title = readTag(block, "title") ?? "未命名更新";
+      const author = readTag(block, "name") ?? readTag(block, "author") ?? "未知來源";
       const publishedAt =
         readTag(block, "published") ?? readTag(block, "updated") ?? readTag(block, "pubDate");
 
@@ -183,7 +183,7 @@ async function fetchTwitchEntry(alert: SocialAlert): Promise<SocialAlertEntry | 
 
   return {
     id: stream.id,
-    title: stream.title ?? `${stream.user_name ?? alert.sourceId} is live`,
+    title: stream.title ?? `${stream.user_name ?? alert.sourceId} 正在直播`,
     url: alert.sourceUrl || `https://www.twitch.tv/${stream.user_login ?? alert.sourceId}`,
     author: stream.user_name ?? alert.sourceId,
     publishedAt: stream.started_at ?? null
@@ -387,7 +387,7 @@ export async function testSocialAlert(context: CommandContext, guildId: string, 
   if (!alert) {
     return {
       ok: false as const,
-      message: "Social alert not found or disabled."
+      message: "找不到社群通知，或通知已停用。"
     };
   }
 
@@ -398,20 +398,20 @@ export async function testSocialAlert(context: CommandContext, guildId: string, 
       ok: false as const,
       message:
         alert.type === SocialAlertType.TWITCH
-          ? "No live Twitch stream found, or Twitch credentials are not configured."
-          : "No feed entry found."
+          ? "找不到進行中的 Twitch 直播，或尚未設定 Twitch 憑證。"
+          : "找不到訂閱來源項目。"
     };
   }
 
-  const sent = await sendAlertMessage(context, alert, entry, "[Test] ");
+  const sent = await sendAlertMessage(context, alert, entry, "[測試] ");
 
   return sent
     ? {
         ok: true as const,
-        message: `Sent a test alert to <#${alert.channelId}>.`
+        message: `已將測試通知傳送至 <#${alert.channelId}>。`
       }
     : {
         ok: false as const,
-        message: "Could not send to the configured alert channel."
+        message: "無法傳送至設定的通知頻道。"
       };
 }

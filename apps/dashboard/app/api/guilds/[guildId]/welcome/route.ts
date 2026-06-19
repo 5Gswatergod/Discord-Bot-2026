@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = welcomeSettingsSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid welcome settings" }, { status: 400 });
+    return NextResponse.json({ error: "歡迎訊息設定格式不正確" }, { status: 400 });
   }
 
   const settings = parsed.data;

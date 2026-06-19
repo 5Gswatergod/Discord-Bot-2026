@@ -10,7 +10,7 @@ export async function requireGuildApiAccess(guildId: string) {
   if (!session?.accessToken) {
     return {
       ok: false as const,
-      response: NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      response: NextResponse.json({ error: "尚未登入" }, { status: 401 })
     };
   }
 
@@ -20,7 +20,7 @@ export async function requireGuildApiAccess(guildId: string) {
   if (!guild) {
     return {
       ok: false as const,
-      response: NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      response: NextResponse.json({ error: "沒有管理此伺服器的權限" }, { status: 403 })
     };
   }
 

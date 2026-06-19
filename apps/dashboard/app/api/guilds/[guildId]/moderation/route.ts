@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = moderationSettingsSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid moderation settings" }, { status: 400 });
+    return NextResponse.json({ error: "管理功能設定格式不正確" }, { status: 400 });
   }
 
   const settings = parsed.data;

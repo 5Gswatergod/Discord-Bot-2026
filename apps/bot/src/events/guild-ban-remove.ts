@@ -8,9 +8,9 @@ import { sendGuildLog } from "../lib/logging/send-log";
 export async function handleGuildBanRemove(ban: GuildBan, context: CommandContext) {
   const embed = new EmbedBuilder()
     .setColor(0x22c55e)
-    .setTitle("Member unbanned")
+    .setTitle("成員已解除封鎖")
     .addFields({
-      name: "User",
+      name: "使用者",
       value: `<@${ban.user.id}> (${ban.user.tag})`
     });
 

@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = giveawaysUpdateSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid giveaways" }, { status: 400 });
+    return NextResponse.json({ error: "抽獎設定格式不正確" }, { status: 400 });
   }
 
   const input = parsed.data;
@@ -41,7 +41,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     });
 
     if (ownedGiveawayCount !== giveawayIds.length) {
-      return NextResponse.json({ error: "Giveaway not found" }, { status: 404 });
+      return NextResponse.json({ error: "找不到抽獎" }, { status: 404 });
     }
   }
 

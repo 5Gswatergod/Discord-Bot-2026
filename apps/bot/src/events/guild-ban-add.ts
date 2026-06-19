@@ -8,9 +8,9 @@ import { sendGuildLog } from "../lib/logging/send-log";
 export async function handleGuildBanAdd(ban: GuildBan, context: CommandContext) {
   const embed = new EmbedBuilder()
     .setColor(0xef4444)
-    .setTitle("Member banned")
+    .setTitle("成員遭封鎖")
     .addFields({
-      name: "User",
+      name: "使用者",
       value: `<@${ban.user.id}> (${ban.user.tag})`
     });
 

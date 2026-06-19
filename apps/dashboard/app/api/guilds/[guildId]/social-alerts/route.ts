@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = socialAlertsUpdateSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid social alerts" }, { status: 400 });
+    return NextResponse.json({ error: "社群通知設定格式不正確" }, { status: 400 });
   }
 
   const input = parsed.data;
@@ -39,7 +39,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     });
 
     if (ownedAlertCount !== alertIds.length) {
-      return NextResponse.json({ error: "Social alert not found" }, { status: 404 });
+      return NextResponse.json({ error: "找不到社群通知" }, { status: 404 });
     }
   }
 

@@ -22,26 +22,26 @@ function shuffle<T>(items: T[]) {
 function buildGiveawayEmbed(giveaway: Giveaway, entryCount = 0) {
   return new EmbedBuilder()
     .setColor(0xf59e0b)
-    .setTitle("Giveaway")
+    .setTitle("抽獎")
     .setDescription(giveaway.prize)
     .addFields(
       {
-        name: "Winners",
+        name: "得獎人數",
         value: String(giveaway.winnerCount),
         inline: true
       },
       {
-        name: "Entries",
+        name: "參加人數",
         value: String(entryCount),
         inline: true
       },
       {
-        name: "Ends",
+        name: "結束時間",
         value: `<t:${Math.floor(giveaway.endsAt.getTime() / 1000)}:R>`,
         inline: true
       },
       {
-        name: "Giveaway ID",
+        name: "抽獎 ID",
         value: giveaway.id
       }
     )
@@ -52,7 +52,7 @@ function buildGiveawayButton(giveawayId: string, disabled = false) {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`${buttonPrefix}${giveawayId}`)
-      .setLabel("Enter giveaway")
+      .setLabel("參加抽獎")
       .setStyle(ButtonStyle.Primary)
       .setDisabled(disabled)
   );
@@ -126,9 +126,9 @@ export async function endGiveaway(context: CommandContext, giveawayId: string, r
 
   if (channel) {
     const winnerText =
-      winners.length > 0 ? winners.map((winner) => `<@${winner}>`).join(", ") : "No valid entries.";
+      winners.length > 0 ? winners.map((winner) => `<@${winner}>`).join(", ") : "沒有有效的參加者。";
     await channel.send({
-      content: `${reroll ? "Rerolled" : "Ended"} giveaway **${giveaway.prize}**. Winners: ${winnerText}`
+      content: `${reroll ? "已重新抽取" : "已結束"}抽獎 **${giveaway.prize}**。得獎者：${winnerText}`
     });
 
     if (giveaway.messageId) {
@@ -140,7 +140,7 @@ export async function endGiveaway(context: CommandContext, giveawayId: string, r
       });
       await message
         ?.edit({
-          embeds: [buildGiveawayEmbed(updated, entryCount).setTitle("Giveaway ended")],
+          embeds: [buildGiveawayEmbed(updated, entryCount).setTitle("抽獎已結束")],
           components: [buildGiveawayButton(giveaway.id, true)]
         })
         .catch(() => null);
@@ -185,7 +185,7 @@ export async function handleGiveawayButton(interaction: ButtonInteraction, conte
 
   if (!giveaway || giveaway.status !== GiveawayStatus.ACTIVE || giveaway.endsAt <= new Date()) {
     await interaction.reply({
-      content: "This giveaway is no longer active.",
+      content: "此抽獎已經結束或無法參加。",
       ephemeral: true
     });
     return true;
@@ -195,7 +195,7 @@ export async function handleGiveawayButton(interaction: ButtonInteraction, conte
 
   if (!moduleEnabled) {
     await interaction.reply({
-      content: "Giveaways are disabled for this server.",
+      content: "此伺服器已停用抽獎功能。",
       ephemeral: true
     });
     return true;
@@ -206,7 +206,7 @@ export async function handleGiveawayButton(interaction: ButtonInteraction, conte
 
     if (!member?.roles.cache.has(giveaway.requiredRoleId)) {
       await interaction.reply({
-        content: "You do not have the required role for this giveaway.",
+        content: "你沒有參加此抽獎所需的身分組。",
         ephemeral: true
       });
       return true;
@@ -229,7 +229,7 @@ export async function handleGiveawayButton(interaction: ButtonInteraction, conte
   });
 
   await interaction.reply({
-    content: "You are entered in the giveaway.",
+    content: "你已成功參加抽獎。",
     ephemeral: true
   });
   return true;

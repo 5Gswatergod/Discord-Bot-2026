@@ -8,9 +8,9 @@ import { sendGuildLog } from "../lib/logging/send-log";
 export async function handleRoleDelete(role: Role, context: CommandContext) {
   const embed = new EmbedBuilder()
     .setColor(0xef4444)
-    .setTitle("Role deleted")
+    .setTitle("身分組已刪除")
     .addFields({
-      name: "Role",
+      name: "身分組",
       value: role.name
     });
 

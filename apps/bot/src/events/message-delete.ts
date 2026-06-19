@@ -13,23 +13,23 @@ export async function handleMessageDelete(
     return;
   }
 
-  const content = message.content || "Content unavailable.";
+  const content = message.content || "無法取得訊息內容。";
   const embed = new EmbedBuilder()
     .setColor(0xf97316)
-    .setTitle("Message deleted")
+    .setTitle("訊息已刪除")
     .addFields(
       {
-        name: "Channel",
+        name: "頻道",
         value: `<#${message.channelId}>`,
         inline: true
       },
       {
-        name: "Author",
-        value: message.author ? `<@${message.author.id}>` : "Unknown",
+        name: "作者",
+        value: message.author ? `<@${message.author.id}>` : "未知使用者",
         inline: true
       },
       {
-        name: "Content",
+        name: "內容",
         value: content.slice(0, 1_000)
       }
     );

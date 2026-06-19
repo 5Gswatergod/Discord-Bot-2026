@@ -11,58 +11,80 @@ import { parseDurationToSeconds } from "../../lib/time";
 export const giveawayCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("giveaway")
-    .setDescription("Manage giveaways.")
+    .setNameLocalizations({ "zh-TW": "抽獎" })
+    .setDescription("管理抽獎。")
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
         .setName("create")
-        .setDescription("Create a giveaway.")
+        .setNameLocalizations({ "zh-TW": "建立" })
+        .setDescription("建立抽獎。")
         .addStringOption((option) =>
-          option.setName("prize").setDescription("Prize to give away.").setRequired(true)
+          option
+            .setName("prize")
+            .setNameLocalizations({ "zh-TW": "獎品" })
+            .setDescription("要抽出的獎品。")
+            .setRequired(true)
         )
         .addStringOption((option) =>
           option
             .setName("duration")
-            .setDescription("Duration such as 30m, 2h, or 7d.")
+            .setNameLocalizations({ "zh-TW": "持續時間" })
+            .setDescription("持續時間，例如 30m、2h 或 7d。")
             .setRequired(true)
         )
         .addIntegerOption((option) =>
           option
             .setName("winners")
-            .setDescription("Number of winners.")
+            .setNameLocalizations({ "zh-TW": "得獎人數" })
+            .setDescription("得獎人數。")
             .setMinValue(1)
             .setMaxValue(25)
         )
         .addChannelOption((option) =>
           option
             .setName("channel")
-            .setDescription("Channel to post in.")
+            .setNameLocalizations({ "zh-TW": "頻道" })
+            .setDescription("發佈抽獎的頻道。")
             .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
         )
         .addRoleOption((option) =>
-          option.setName("required_role").setDescription("Required role to enter.")
+          option
+            .setName("required_role")
+            .setNameLocalizations({ "zh-TW": "必要身分組" })
+            .setDescription("參加抽獎所需的身分組。")
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
         .setName("end")
-        .setDescription("End a giveaway now.")
+        .setNameLocalizations({ "zh-TW": "結束" })
+        .setDescription("立即結束抽獎。")
         .addStringOption((option) =>
-          option.setName("giveaway_id").setDescription("Giveaway ID.").setRequired(true)
+          option
+            .setName("giveaway_id")
+            .setNameLocalizations({ "zh-TW": "抽獎_id" })
+            .setDescription("抽獎 ID。")
+            .setRequired(true)
         )
     )
     .addSubcommand((subcommand) =>
       subcommand
         .setName("reroll")
-        .setDescription("Reroll winners for an ended giveaway.")
+        .setNameLocalizations({ "zh-TW": "重抽" })
+        .setDescription("為已結束的抽獎重新抽出得獎者。")
         .addStringOption((option) =>
-          option.setName("giveaway_id").setDescription("Giveaway ID.").setRequired(true)
+          option
+            .setName("giveaway_id")
+            .setNameLocalizations({ "zh-TW": "抽獎_id" })
+            .setDescription("抽獎 ID。")
+            .setRequired(true)
         )
     ),
   async execute(interaction, context) {
     if (!interaction.guildId || !interaction.guild) {
       await interaction.reply({
-        content: "This command can only be used inside a server.",
+        content: "此指令只能在伺服器內使用。",
         ephemeral: true
       });
       return;
@@ -70,7 +92,7 @@ export const giveawayCommand: BotCommand = {
 
     if (!interaction.memberPermissions?.any([PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild])) {
       await interaction.reply({
-        content: "You need Manage Server permission to manage giveaways.",
+        content: "你需要「管理伺服器」權限才能管理抽獎。",
         ephemeral: true
       });
       return;
@@ -80,7 +102,7 @@ export const giveawayCommand: BotCommand = {
 
     if (!enabled) {
       await interaction.reply({
-        content: "Giveaways are disabled for this server.",
+        content: "此伺服器已停用抽獎功能。",
         ephemeral: true
       });
       return;
@@ -94,7 +116,7 @@ export const giveawayCommand: BotCommand = {
 
       if (!durationSeconds) {
         await interaction.reply({
-          content: "Duration must look like 30m, 2h, or 7d.",
+          content: "持續時間格式必須像 30m、2h 或 7d。",
           ephemeral: true
         });
         return;
@@ -104,7 +126,7 @@ export const giveawayCommand: BotCommand = {
 
       if (!isSendableGuildTextChannel(channel)) {
         await interaction.reply({
-          content: "Giveaways need a text channel.",
+          content: "抽獎必須發佈在文字頻道。",
           ephemeral: true
         });
         return;
@@ -126,8 +148,8 @@ export const giveawayCommand: BotCommand = {
 
       await interaction.reply({
         content: message
-          ? `Created giveaway ${giveaway.id}: ${message.url}`
-          : `Created giveaway ${giveaway.id}, but I could not send the Discord message.`,
+          ? `已建立抽獎 ${giveaway.id}：${message.url}`
+          : `已建立抽獎 ${giveaway.id}，但無法傳送 Discord 訊息。`,
         ephemeral: true
       });
       return;
@@ -137,7 +159,9 @@ export const giveawayCommand: BotCommand = {
     const ended = await endGiveaway(context, giveawayId, subcommand === "reroll");
 
     await interaction.reply({
-      content: ended ? `${subcommand === "reroll" ? "Rerolled" : "Ended"} giveaway ${giveawayId}.` : "Giveaway not found or already ended.",
+      content: ended
+        ? `已${subcommand === "reroll" ? "重新抽取" : "結束"}抽獎 ${giveawayId}。`
+        : "找不到抽獎，或抽獎已經結束。",
       ephemeral: true
     });
   }

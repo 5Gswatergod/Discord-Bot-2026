@@ -7,23 +7,32 @@ import { checkSocialAlerts, testSocialAlert } from "../../lib/social-alerts/soci
 export const socialAlertCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("social-alert")
-    .setDescription("Manage social alert checks.")
+    .setNameLocalizations({ "zh-TW": "社群通知" })
+    .setDescription("管理社群通知檢查。")
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
-      subcommand.setName("check").setDescription("Check social alerts for this server now.")
+      subcommand
+        .setName("check")
+        .setNameLocalizations({ "zh-TW": "檢查" })
+        .setDescription("立即檢查此伺服器的社群通知。")
     )
     .addSubcommand((subcommand) =>
       subcommand
         .setName("test")
-        .setDescription("Send the latest item from an alert as a test.")
+        .setNameLocalizations({ "zh-TW": "測試" })
+        .setDescription("以最新項目測試傳送通知。")
         .addStringOption((option) =>
-          option.setName("alert_id").setDescription("Social alert ID.").setRequired(true)
+          option
+            .setName("alert_id")
+            .setNameLocalizations({ "zh-TW": "通知_id" })
+            .setDescription("社群通知 ID。")
+            .setRequired(true)
         )
     ),
   async execute(interaction, context) {
     if (!interaction.guildId) {
       await interaction.reply({
-        content: "This command can only be used inside a server.",
+        content: "此指令只能在伺服器內使用。",
         ephemeral: true
       });
       return;
@@ -31,7 +40,7 @@ export const socialAlertCommand: BotCommand = {
 
     if (!interaction.memberPermissions?.any([PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild])) {
       await interaction.reply({
-        content: "You need Manage Server permission to manage social alerts.",
+        content: "你需要「管理伺服器」權限才能管理社群通知。",
         ephemeral: true
       });
       return;
@@ -41,7 +50,7 @@ export const socialAlertCommand: BotCommand = {
 
     if (!enabled) {
       await interaction.reply({
-        content: "Social alerts are disabled for this server.",
+        content: "此伺服器已停用社群通知功能。",
         ephemeral: true
       });
       return;
@@ -70,7 +79,7 @@ export const socialAlertCommand: BotCommand = {
     });
 
     await interaction.editReply(
-      `Checked ${summary.checked} alerts. Sent ${summary.sent}, baselined ${summary.baselined}, unchanged ${summary.unchanged}, skipped ${summary.skipped}, failed ${summary.failed}.`
+      `已檢查 ${summary.checked} 個通知。已傳送 ${summary.sent} 個、建立基準 ${summary.baselined} 個、無變更 ${summary.unchanged} 個、略過 ${summary.skipped} 個、失敗 ${summary.failed} 個。`
     );
   }
 };

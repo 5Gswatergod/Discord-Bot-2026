@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = customCommandUpdateSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid custom commands" }, { status: 400 });
+    return NextResponse.json({ error: "自訂指令格式不正確" }, { status: 400 });
   }
 
   const input = parsed.data;

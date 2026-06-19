@@ -97,7 +97,7 @@ export async function publishReactionRolePanel(
   const embed = new EmbedBuilder()
     .setColor(parseColor(panel.color))
     .setTitle(panel.title)
-    .setDescription(panel.description ?? "Choose a role below.");
+    .setDescription(panel.description ?? "請在下方選擇身分組。");
   const message = await channel.send({
     embeds: [embed],
     components: buildRows(buttonOptions)
@@ -148,13 +148,13 @@ async function applyRoleOption(
   });
 
   if (!option?.panel.enabled) {
-    return "This role panel is not available.";
+    return "此身分組面板目前無法使用。";
   }
 
   const moduleEnabled = await isGuildModuleEnabled(context.prisma, member.guild.id, "REACTION_ROLES");
 
   if (!moduleEnabled) {
-    return "Reaction roles are disabled for this server.";
+    return "此伺服器已停用自助身分組功能。";
   }
 
   if (option.panel.mode === ReactionRoleMode.SINGLE_SELECT && mode !== "remove") {
@@ -168,12 +168,12 @@ async function applyRoleOption(
   const shouldRemove = mode === "remove" || (mode === "toggle" && hasRole);
 
   if (shouldRemove) {
-    await member.roles.remove(option.roleId, "Reaction role toggle");
-    return `Removed ${option.label}.`;
+    await member.roles.remove(option.roleId, "自助身分組切換");
+    return `已移除 ${option.label}。`;
   }
 
-  await member.roles.add(option.roleId, "Reaction role toggle");
-  return `Added ${option.label}.`;
+  await member.roles.add(option.roleId, "自助身分組切換");
+  return `已新增 ${option.label}。`;
 }
 
 export async function handleReactionRoleButton(
@@ -188,7 +188,7 @@ export async function handleReactionRoleButton(
 
   if (!member) {
     await interaction.reply({
-      content: "Could not find your member profile.",
+      content: "找不到你的伺服器成員資料。",
       ephemeral: true
     });
     return true;

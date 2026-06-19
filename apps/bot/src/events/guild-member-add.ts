@@ -11,15 +11,15 @@ export async function handleGuildMemberAdd(member: GuildMember, context: Command
 
   const embed = new EmbedBuilder()
     .setColor(0x22c55e)
-    .setTitle("Member joined")
+    .setTitle("成員加入")
     .addFields(
       {
-        name: "Member",
+        name: "成員",
         value: `<@${member.id}> (${member.user.tag})`,
         inline: true
       },
       {
-        name: "Account created",
+        name: "帳號建立時間",
         value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`,
         inline: true
       }

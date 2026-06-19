@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = loggingSettingsSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid logging settings" }, { status: 400 });
+    return NextResponse.json({ error: "伺服器紀錄設定格式不正確" }, { status: 400 });
   }
 
   const input = parsed.data;

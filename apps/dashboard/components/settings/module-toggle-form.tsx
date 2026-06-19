@@ -37,7 +37,7 @@ export function ModuleToggleForm({ guildId, modules }: ModuleToggleFormProps) {
     });
 
     if (!response.ok) {
-      setMessage("Failed to save module state.");
+      setMessage("無法儲存模組狀態。");
       return;
     }
 
@@ -67,7 +67,7 @@ export function ModuleToggleForm({ guildId, modules }: ModuleToggleFormProps) {
       {message ? <p className="text-sm text-red-600">{message}</p> : null}
       <Button type="button" variant="secondary" disabled>
         <Save size={16} aria-hidden="true" />
-        Auto saved
+        已自動儲存
       </Button>
     </div>
   );

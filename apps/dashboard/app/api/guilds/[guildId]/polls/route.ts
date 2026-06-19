@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const parsed = pollsUpdateSchema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid polls" }, { status: 400 });
+    return NextResponse.json({ error: "投票設定格式不正確" }, { status: 400 });
   }
 
   const input = parsed.data;
@@ -39,7 +39,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     });
 
     if (ownedPollCount !== pollIds.length) {
-      return NextResponse.json({ error: "Poll not found" }, { status: 404 });
+      return NextResponse.json({ error: "找不到投票" }, { status: 404 });
     }
   }
 

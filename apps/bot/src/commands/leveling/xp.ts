@@ -6,20 +6,25 @@ import { leaderboardCommand, rankCommand } from "./rank";
 export const xpCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("xp")
-    .setDescription("Manage XP records.")
+    .setNameLocalizations({ "zh-TW": "經驗值" })
+    .setDescription("管理經驗值紀錄。")
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
         .setName("reset")
-        .setDescription("Reset XP for one member or the whole server.")
+        .setNameLocalizations({ "zh-TW": "重設" })
+        .setDescription("重設單一成員或整個伺服器的經驗值。")
         .addUserOption((option) =>
-          option.setName("user").setDescription("Member to reset. Leave empty for all members.")
+          option
+            .setName("user")
+            .setNameLocalizations({ "zh-TW": "使用者" })
+            .setDescription("要重設的成員，留空則重設所有成員。")
         )
     ),
   async execute(interaction, context) {
     if (!interaction.guildId) {
       await interaction.reply({
-        content: "This command can only be used inside a server.",
+        content: "此指令只能在伺服器內使用。",
         ephemeral: true
       });
       return;
@@ -27,7 +32,7 @@ export const xpCommand: BotCommand = {
 
     if (!interaction.memberPermissions?.any([PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild])) {
       await interaction.reply({
-        content: "You need Manage Server permission to reset XP.",
+        content: "你需要「管理伺服器」權限才能重設經驗值。",
         ephemeral: true
       });
       return;
@@ -44,7 +49,7 @@ export const xpCommand: BotCommand = {
       });
 
       await interaction.reply({
-        content: `Reset XP for ${user.tag}.`,
+        content: `已重設 ${user.tag} 的經驗值。`,
         ephemeral: true
       });
       return;
@@ -57,7 +62,7 @@ export const xpCommand: BotCommand = {
     });
 
     await interaction.reply({
-      content: `Reset XP for ${result.count} members.`,
+      content: `已重設 ${result.count} 位成員的經驗值。`,
       ephemeral: true
     });
   }

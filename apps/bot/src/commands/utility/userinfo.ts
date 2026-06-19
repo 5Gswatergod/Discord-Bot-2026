@@ -5,9 +5,14 @@ import type { BotCommand } from "../types";
 export const userInfoCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("userinfo")
-    .setDescription("Show basic information about a member.")
+    .setNameLocalizations({ "zh-TW": "使用者資訊" })
+    .setDescription("顯示成員的基本資訊。")
     .addUserOption((option) =>
-      option.setName("user").setDescription("Member to inspect.").setRequired(false)
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("要查看的成員。")
+        .setRequired(false)
     ),
   async execute(interaction) {
     const user = interaction.options.getUser("user") ?? interaction.user;
@@ -19,12 +24,12 @@ export const userInfoCommand: BotCommand = {
       .setColor(0x24b47e)
       .addFields(
         {
-          name: "User ID",
+          name: "使用者 ID",
           value: user.id,
           inline: true
         },
         {
-          name: "Account Created",
+          name: "帳號建立時間",
           value: `<t:${Math.floor(user.createdTimestamp / 1000)}:R>`,
           inline: true
         }
@@ -32,7 +37,7 @@ export const userInfoCommand: BotCommand = {
 
     if (member?.joinedTimestamp) {
       embed.addFields({
-        name: "Joined Server",
+        name: "加入伺服器時間",
         value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`,
         inline: true
       });

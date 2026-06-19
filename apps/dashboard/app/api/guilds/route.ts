@@ -10,7 +10,7 @@ export async function GET() {
   if (!session?.accessToken) {
     return NextResponse.json(
       {
-        error: "Unauthorized"
+        error: "尚未登入"
       },
       {
         status: 401

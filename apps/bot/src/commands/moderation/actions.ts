@@ -18,7 +18,7 @@ import {
 } from "../../lib/moderation";
 import { parseDurationToSeconds } from "../../lib/time";
 
-const noReason = "No reason provided.";
+const noReason = "未提供理由。";
 
 async function fetchTargetMember(interaction: ChatInputCommandInteraction, optionName = "user") {
   const user = interaction.options.getUser(optionName, true);
@@ -39,7 +39,7 @@ async function ensureBotPermission(
 
   if (!botMember?.permissions.has(permission)) {
     await interaction.reply({
-      content: `I need the ${label} permission to do that.`,
+      content: `機器人需要「${label}」權限才能執行此操作。`,
       ephemeral: true
     });
     return false;
@@ -59,7 +59,7 @@ async function ensureActionTarget(
     }
 
     await interaction.reply({
-      content: "That user is not a current server member.",
+      content: "該使用者目前不是此伺服器的成員。",
       ephemeral: true
     });
     return false;
@@ -67,7 +67,7 @@ async function ensureActionTarget(
 
   if (member.id === interaction.user.id) {
     await interaction.reply({
-      content: "You cannot target yourself with this command.",
+      content: "你不能對自己使用此指令。",
       ephemeral: true
     });
     return false;
@@ -75,7 +75,7 @@ async function ensureActionTarget(
 
   if (member.id === interaction.client.user.id) {
     await interaction.reply({
-      content: "I cannot target myself.",
+      content: "機器人不能對自己執行此操作。",
       ephemeral: true
     });
     return false;
@@ -83,7 +83,7 @@ async function ensureActionTarget(
 
   if (action === "ban" && !member.bannable) {
     await interaction.reply({
-      content: "I cannot ban that member. Check role hierarchy and bot permissions.",
+      content: "無法封鎖該成員，請檢查身分組階級與機器人權限。",
       ephemeral: true
     });
     return false;
@@ -91,7 +91,7 @@ async function ensureActionTarget(
 
   if (action === "kick" && !member.kickable) {
     await interaction.reply({
-      content: "I cannot kick that member. Check role hierarchy and bot permissions.",
+      content: "無法踢除該成員，請檢查身分組階級與機器人權限。",
       ephemeral: true
     });
     return false;
@@ -99,7 +99,7 @@ async function ensureActionTarget(
 
   if (action === "timeout" && !member.moderatable) {
     await interaction.reply({
-      content: "I cannot timeout that member. Check role hierarchy and bot permissions.",
+      content: "無法禁言該成員，請檢查身分組階級與機器人權限。",
       ephemeral: true
     });
     return false;
@@ -143,7 +143,7 @@ async function recordAndReply(
   });
 
   await interaction.reply({
-    content: `${input.publicMessage} Case #${moderationCase.caseNumber}.`,
+    content: `${input.publicMessage} 案件編號 #${moderationCase.caseNumber}。`,
     ephemeral: true
   });
 
@@ -153,25 +153,35 @@ async function recordAndReply(
 export const banCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("ban")
-    .setDescription("Ban a user from this server.")
+    .setNameLocalizations({ "zh-TW": "封鎖" })
+    .setDescription("從此伺服器封鎖使用者。")
     .setDMPermission(false)
     .addUserOption((option) =>
-      option.setName("user").setDescription("User to ban.").setRequired(true)
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("要封鎖的使用者。")
+        .setRequired(true)
     )
     .addStringOption((option) =>
-      option.setName("reason").setDescription("Reason for this ban.").setMaxLength(512)
+      option
+        .setName("reason")
+        .setNameLocalizations({ "zh-TW": "理由" })
+        .setDescription("封鎖理由。")
+        .setMaxLength(512)
     )
     .addIntegerOption((option) =>
       option
         .setName("delete_message_seconds")
-        .setDescription("Delete recent message history, up to 604800 seconds.")
+        .setNameLocalizations({ "zh-TW": "刪除訊息秒數" })
+        .setDescription("刪除近期訊息紀錄，最多 604800 秒。")
         .setMinValue(0)
         .setMaxValue(604_800)
     ),
   async execute(interaction, context) {
     const settings = await ensureModerationReady(interaction, context);
 
-    if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.BanMembers, "Ban Members"))) {
+    if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.BanMembers, "封鎖成員"))) {
       return;
     }
 
@@ -193,7 +203,7 @@ export const banCommand: BotCommand = {
       action: ModerationAction.BAN,
       targetUserId: user.id,
       reason,
-      publicMessage: `Banned ${user.tag}.`
+      publicMessage: `已封鎖 ${user.tag}。`
     });
   }
 };
@@ -201,18 +211,27 @@ export const banCommand: BotCommand = {
 export const kickCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("kick")
-    .setDescription("Kick a member from this server.")
+    .setNameLocalizations({ "zh-TW": "踢除" })
+    .setDescription("將成員踢出此伺服器。")
     .setDMPermission(false)
     .addUserOption((option) =>
-      option.setName("user").setDescription("Member to kick.").setRequired(true)
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("要踢除的成員。")
+        .setRequired(true)
     )
     .addStringOption((option) =>
-      option.setName("reason").setDescription("Reason for this kick.").setMaxLength(512)
+      option
+        .setName("reason")
+        .setNameLocalizations({ "zh-TW": "理由" })
+        .setDescription("踢除理由。")
+        .setMaxLength(512)
     ),
   async execute(interaction, context) {
     const settings = await ensureModerationReady(interaction, context);
 
-    if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.KickMembers, "Kick Members"))) {
+    if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.KickMembers, "踢除成員"))) {
       return;
     }
 
@@ -229,7 +248,7 @@ export const kickCommand: BotCommand = {
       action: ModerationAction.KICK,
       targetUserId: user.id,
       reason,
-      publicMessage: `Kicked ${user.tag}.`
+      publicMessage: `已踢除 ${user.tag}。`
     });
   }
 };
@@ -237,27 +256,37 @@ export const kickCommand: BotCommand = {
 export const timeoutCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("timeout")
-    .setDescription("Timeout a member.")
+    .setNameLocalizations({ "zh-TW": "禁言" })
+    .setDescription("暫時禁言成員。")
     .setDMPermission(false)
     .addUserOption((option) =>
-      option.setName("user").setDescription("Member to timeout.").setRequired(true)
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("要禁言的成員。")
+        .setRequired(true)
     )
     .addStringOption((option) =>
       option
         .setName("duration")
-        .setDescription("Duration such as 10m, 2h, or 1d.")
+        .setNameLocalizations({ "zh-TW": "持續時間" })
+        .setDescription("禁言時間，例如 10m、2h 或 1d。")
         .setRequired(true)
         .setMaxLength(8)
     )
     .addStringOption((option) =>
-      option.setName("reason").setDescription("Reason for this timeout.").setMaxLength(512)
+      option
+        .setName("reason")
+        .setNameLocalizations({ "zh-TW": "理由" })
+        .setDescription("禁言理由。")
+        .setMaxLength(512)
     ),
   async execute(interaction, context) {
     const settings = await ensureModerationReady(interaction, context);
 
     if (
       !settings ||
-      !(await ensureBotPermission(interaction, PermissionFlagsBits.ModerateMembers, "Moderate Members"))
+      !(await ensureBotPermission(interaction, PermissionFlagsBits.ModerateMembers, "禁言成員"))
     ) {
       return;
     }
@@ -273,7 +302,7 @@ export const timeoutCommand: BotCommand = {
 
     if (!durationSeconds || durationSeconds > 2_419_200) {
       await interaction.reply({
-        content: "Duration must look like 10m, 2h, or 1d, up to 28 days.",
+        content: "持續時間格式必須像 10m、2h 或 1d，最長 28 天。",
         ephemeral: true
       });
       return;
@@ -289,7 +318,7 @@ export const timeoutCommand: BotCommand = {
       reason,
       durationSeconds,
       expiresAt,
-      publicMessage: `Timed out ${user.tag} for ${duration}.`
+      publicMessage: `已將 ${user.tag} 禁言 ${duration}。`
     });
   }
 };
@@ -297,15 +326,21 @@ export const timeoutCommand: BotCommand = {
 export const warnCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("warn")
-    .setDescription("Warn a member.")
+    .setNameLocalizations({ "zh-TW": "警告" })
+    .setDescription("警告成員。")
     .setDMPermission(false)
     .addUserOption((option) =>
-      option.setName("user").setDescription("Member to warn.").setRequired(true)
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("要警告的成員。")
+        .setRequired(true)
     )
     .addStringOption((option) =>
       option
         .setName("reason")
-        .setDescription("Reason for this warning.")
+        .setNameLocalizations({ "zh-TW": "理由" })
+        .setDescription("警告理由。")
         .setRequired(true)
         .setMaxLength(512)
     ),
@@ -322,7 +357,7 @@ export const warnCommand: BotCommand = {
       action: ModerationAction.WARN,
       targetUserId: user.id,
       reason,
-      publicMessage: `Warned ${user.tag}.`
+      publicMessage: `已警告 ${user.tag}。`
     });
 
     if (moderationCase) {
@@ -340,10 +375,15 @@ export const warnCommand: BotCommand = {
 export const warningsCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("warnings")
-    .setDescription("Show warnings for a member.")
+    .setNameLocalizations({ "zh-TW": "警告紀錄" })
+    .setDescription("顯示成員的警告紀錄。")
     .setDMPermission(false)
     .addUserOption((option) =>
-      option.setName("user").setDescription("Member to inspect.").setRequired(true)
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("要查看的成員。")
+        .setRequired(true)
     ),
   async execute(interaction, context) {
     const settings = await ensureModerationReady(interaction, context);
@@ -366,7 +406,7 @@ export const warningsCommand: BotCommand = {
 
     if (warnings.length === 0) {
       await interaction.reply({
-        content: `${user.tag} has no warnings.`,
+        content: `${user.tag} 沒有任何警告紀錄。`,
         ephemeral: true
       });
       return;
@@ -387,25 +427,30 @@ export const warningsCommand: BotCommand = {
 export const clearCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("clear")
-    .setDescription("Bulk delete recent messages.")
+    .setNameLocalizations({ "zh-TW": "清除訊息" })
+    .setDescription("批次刪除近期訊息。")
     .setDMPermission(false)
     .addIntegerOption((option) =>
       option
         .setName("amount")
-        .setDescription("Number of messages to delete.")
+        .setNameLocalizations({ "zh-TW": "數量" })
+        .setDescription("要刪除的訊息數量。")
         .setRequired(true)
         .setMinValue(1)
         .setMaxValue(100)
     )
     .addUserOption((option) =>
-      option.setName("user").setDescription("Only delete messages by this user.")
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("只刪除此使用者傳送的訊息。")
     ),
   async execute(interaction, context) {
     const settings = await ensureModerationReady(interaction, context);
 
     if (
       !settings ||
-      !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageMessages, "Manage Messages"))
+      !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageMessages, "管理訊息"))
     ) {
       return;
     }
@@ -414,7 +459,7 @@ export const clearCommand: BotCommand = {
 
     if (!channel || !("bulkDelete" in channel)) {
       await interaction.reply({
-        content: "This channel does not support bulk deletion.",
+        content: "此頻道不支援批次刪除訊息。",
         ephemeral: true
       });
       return;
@@ -437,8 +482,8 @@ export const clearCommand: BotCommand = {
     await recordAndReply(interaction, context, {
       action: ModerationAction.CLEAR,
       targetUserId: user?.id ?? interaction.user.id,
-      reason: `Deleted ${deletedCount} messages in #${channel.name}.`,
-      publicMessage: `Deleted ${deletedCount} messages.`
+      reason: `已在 #${channel.name} 刪除 ${deletedCount} 則訊息。`,
+      publicMessage: `已刪除 ${deletedCount} 則訊息。`
     });
   }
 };
@@ -446,24 +491,33 @@ export const clearCommand: BotCommand = {
 export const muteCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("mute")
-    .setDescription("Assign the configured mute role to a member.")
+    .setNameLocalizations({ "zh-TW": "靜音" })
+    .setDescription("將設定的靜音身分組指派給成員。")
     .setDMPermission(false)
     .addUserOption((option) =>
-      option.setName("user").setDescription("Member to mute.").setRequired(true)
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("要靜音的成員。")
+        .setRequired(true)
     )
     .addStringOption((option) =>
-      option.setName("reason").setDescription("Reason for this mute.").setMaxLength(512)
+      option
+        .setName("reason")
+        .setNameLocalizations({ "zh-TW": "理由" })
+        .setDescription("靜音理由。")
+        .setMaxLength(512)
     ),
   async execute(interaction, context) {
     const settings = await ensureModerationReady(interaction, context);
 
-    if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageRoles, "Manage Roles"))) {
+    if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageRoles, "管理身分組"))) {
       return;
     }
 
     if (!settings.muteRoleId) {
       await interaction.reply({
-        content: "No mute role is configured for this server.",
+        content: "此伺服器尚未設定靜音身分組。",
         ephemeral: true
       });
       return;
@@ -482,7 +536,7 @@ export const muteCommand: BotCommand = {
       action: ModerationAction.MUTE,
       targetUserId: user.id,
       reason,
-      publicMessage: `Muted ${user.tag}.`
+      publicMessage: `已將 ${user.tag} 靜音。`
     });
   }
 };
@@ -490,24 +544,33 @@ export const muteCommand: BotCommand = {
 export const unmuteCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("unmute")
-    .setDescription("Remove the configured mute role from a member.")
+    .setNameLocalizations({ "zh-TW": "解除靜音" })
+    .setDescription("移除成員的靜音身分組。")
     .setDMPermission(false)
     .addUserOption((option) =>
-      option.setName("user").setDescription("Member to unmute.").setRequired(true)
+      option
+        .setName("user")
+        .setNameLocalizations({ "zh-TW": "使用者" })
+        .setDescription("要解除靜音的成員。")
+        .setRequired(true)
     )
     .addStringOption((option) =>
-      option.setName("reason").setDescription("Reason for this unmute.").setMaxLength(512)
+      option
+        .setName("reason")
+        .setNameLocalizations({ "zh-TW": "理由" })
+        .setDescription("解除靜音的理由。")
+        .setMaxLength(512)
     ),
   async execute(interaction, context) {
     const settings = await ensureModerationReady(interaction, context);
 
-    if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageRoles, "Manage Roles"))) {
+    if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageRoles, "管理身分組"))) {
       return;
     }
 
     if (!settings.muteRoleId) {
       await interaction.reply({
-        content: "No mute role is configured for this server.",
+        content: "此伺服器尚未設定靜音身分組。",
         ephemeral: true
       });
       return;
@@ -517,7 +580,7 @@ export const unmuteCommand: BotCommand = {
 
     if (!member) {
       await interaction.reply({
-        content: "That user is not a current server member.",
+        content: "該使用者目前不是此伺服器的成員。",
         ephemeral: true
       });
       return;
@@ -530,7 +593,7 @@ export const unmuteCommand: BotCommand = {
       action: ModerationAction.UNMUTE,
       targetUserId: user.id,
       reason,
-      publicMessage: `Unmuted ${user.tag}.`
+      publicMessage: `已解除 ${user.tag} 的靜音。`
     });
   }
 };
@@ -538,12 +601,14 @@ export const unmuteCommand: BotCommand = {
 export const slowmodeCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("slowmode")
-    .setDescription("Set slowmode for a text channel.")
+    .setNameLocalizations({ "zh-TW": "慢速模式" })
+    .setDescription("設定文字頻道的慢速模式。")
     .setDMPermission(false)
     .addIntegerOption((option) =>
       option
         .setName("seconds")
-        .setDescription("Slowmode delay in seconds. Use 0 to disable.")
+        .setNameLocalizations({ "zh-TW": "秒數" })
+        .setDescription("慢速模式間隔秒數，輸入 0 可停用。")
         .setRequired(true)
         .setMinValue(0)
         .setMaxValue(21_600)
@@ -551,7 +616,8 @@ export const slowmodeCommand: BotCommand = {
     .addChannelOption((option) =>
       option
         .setName("channel")
-        .setDescription("Channel to update.")
+        .setNameLocalizations({ "zh-TW": "頻道" })
+        .setDescription("要更新的頻道。")
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
     ),
   async execute(interaction, context) {
@@ -559,7 +625,7 @@ export const slowmodeCommand: BotCommand = {
 
     if (
       !settings ||
-      !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageChannels, "Manage Channels"))
+      !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageChannels, "管理頻道"))
     ) {
       return;
     }
@@ -569,19 +635,19 @@ export const slowmodeCommand: BotCommand = {
 
     if (!channel || !("setRateLimitPerUser" in channel)) {
       await interaction.reply({
-        content: "That channel does not support slowmode.",
+        content: "該頻道不支援慢速模式。",
         ephemeral: true
       });
       return;
     }
 
-    await channel.setRateLimitPerUser(seconds, `Slowmode set by ${interaction.user.tag}`);
+    await channel.setRateLimitPerUser(seconds, `由 ${interaction.user.tag} 設定慢速模式`);
 
     await recordAndReply(interaction, context, {
       action: ModerationAction.SLOWMODE,
       targetUserId: interaction.user.id,
-      reason: `Set slowmode to ${seconds}s in #${channel.name}.`,
-      publicMessage: `Set slowmode to ${seconds}s in #${channel.name}.`
+      reason: `已將 #${channel.name} 的慢速模式設為 ${seconds} 秒。`,
+      publicMessage: `已將 #${channel.name} 的慢速模式設為 ${seconds} 秒。`
     });
   }
 };
@@ -589,23 +655,29 @@ export const slowmodeCommand: BotCommand = {
 export const lockCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("lock")
-    .setDescription("Prevent @everyone from sending messages in a channel.")
+    .setNameLocalizations({ "zh-TW": "鎖定頻道" })
+    .setDescription("禁止 @everyone 在頻道中傳送訊息。")
     .setDMPermission(false)
     .addChannelOption((option) =>
       option
         .setName("channel")
-        .setDescription("Channel to lock.")
+        .setNameLocalizations({ "zh-TW": "頻道" })
+        .setDescription("要鎖定的頻道。")
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
     )
     .addStringOption((option) =>
-      option.setName("reason").setDescription("Reason for this lock.").setMaxLength(512)
+      option
+        .setName("reason")
+        .setNameLocalizations({ "zh-TW": "理由" })
+        .setDescription("鎖定理由。")
+        .setMaxLength(512)
     ),
   async execute(interaction, context) {
     const settings = await ensureModerationReady(interaction, context);
 
     if (
       !settings ||
-      !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageChannels, "Manage Channels"))
+      !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageChannels, "管理頻道"))
     ) {
       return;
     }
@@ -614,7 +686,7 @@ export const lockCommand: BotCommand = {
 
     if (!interaction.guild || !channel || !("permissionOverwrites" in channel)) {
       await interaction.reply({
-        content: "That channel cannot be locked.",
+        content: "無法鎖定該頻道。",
         ephemeral: true
       });
       return;
@@ -635,7 +707,7 @@ export const lockCommand: BotCommand = {
       action: ModerationAction.LOCK,
       targetUserId: interaction.user.id,
       reason,
-      publicMessage: `Locked #${channel.name}.`
+      publicMessage: `已鎖定 #${channel.name}。`
     });
   }
 };
@@ -643,23 +715,29 @@ export const lockCommand: BotCommand = {
 export const unlockCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("unlock")
-    .setDescription("Restore @everyone message sending in a channel.")
+    .setNameLocalizations({ "zh-TW": "解鎖頻道" })
+    .setDescription("恢復 @everyone 在頻道中傳送訊息的權限。")
     .setDMPermission(false)
     .addChannelOption((option) =>
       option
         .setName("channel")
-        .setDescription("Channel to unlock.")
+        .setNameLocalizations({ "zh-TW": "頻道" })
+        .setDescription("要解鎖的頻道。")
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
     )
     .addStringOption((option) =>
-      option.setName("reason").setDescription("Reason for this unlock.").setMaxLength(512)
+      option
+        .setName("reason")
+        .setNameLocalizations({ "zh-TW": "理由" })
+        .setDescription("解鎖理由。")
+        .setMaxLength(512)
     ),
   async execute(interaction, context) {
     const settings = await ensureModerationReady(interaction, context);
 
     if (
       !settings ||
-      !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageChannels, "Manage Channels"))
+      !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageChannels, "管理頻道"))
     ) {
       return;
     }
@@ -668,7 +746,7 @@ export const unlockCommand: BotCommand = {
 
     if (!interaction.guild || !channel || !("permissionOverwrites" in channel)) {
       await interaction.reply({
-        content: "That channel cannot be unlocked.",
+        content: "無法解鎖該頻道。",
         ephemeral: true
       });
       return;
@@ -689,7 +767,7 @@ export const unlockCommand: BotCommand = {
       action: ModerationAction.UNLOCK,
       targetUserId: interaction.user.id,
       reason,
-      publicMessage: `Unlocked #${channel.name}.`
+      publicMessage: `已解鎖 #${channel.name}。`
     });
   }
 };

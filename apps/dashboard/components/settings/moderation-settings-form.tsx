@@ -50,32 +50,32 @@ export function ModerationSettingsForm({ guildId, settings }: ModerationSettings
     });
 
     if (!response.ok) {
-      setMessage("Failed to save moderation settings.");
+      setMessage("無法儲存管理功能設定。");
       return;
     }
 
-    setMessage("Saved.");
+    setMessage("已儲存。");
     startTransition(() => router.refresh());
   }
 
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
       <label className="grid gap-2 text-sm font-medium">
-        Moderator role IDs
+        管理員身分組 ID
         <Input value={moderatorRoleIds} onChange={(event) => setModeratorRoleIds(event.target.value)} />
       </label>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-medium">
-          Log channel ID
+          紀錄頻道 ID
           <Input value={logChannelId} onChange={(event) => setLogChannelId(event.target.value)} />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          Mute role ID
+          靜音身分組 ID
           <Input value={muteRoleId} onChange={(event) => setMuteRoleId(event.target.value)} />
         </label>
       </div>
       <label className="grid gap-2 text-sm font-medium">
-        Default timeout seconds
+        預設禁言秒數
         <Input
           type="number"
           min={60}
@@ -87,7 +87,7 @@ export function ModerationSettingsForm({ guildId, settings }: ModerationSettings
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           <Save size={16} aria-hidden="true" />
-          Save
+          儲存
         </Button>
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       </div>
