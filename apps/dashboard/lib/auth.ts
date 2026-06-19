@@ -75,7 +75,21 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: "/"
+    signIn: "/",
+    error: "/"
   },
-  secret: env.NEXTAUTH_SECRET
+  secret: env.NEXTAUTH_SECRET,
+  logger: {
+    error(code, metadata) {
+      console.error(`[next-auth][${code}]`, metadata);
+    },
+    warn(code) {
+      console.warn(`[next-auth][${code}]`);
+    },
+    debug(code, metadata) {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug(`[next-auth][${code}]`, metadata);
+      }
+    }
+  }
 };
