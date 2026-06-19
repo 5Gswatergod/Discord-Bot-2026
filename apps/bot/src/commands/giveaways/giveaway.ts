@@ -6,6 +6,7 @@ import type { BotCommand } from "../types";
 import { createGiveawayMessage, endGiveaway } from "../../lib/giveaways/giveaways";
 import { isSendableGuildTextChannel } from "../../lib/channels";
 import { isGuildModuleEnabled } from "../../lib/modules";
+import { requireGuildPermission } from "../../lib/permissions";
 import { parseDurationToSeconds } from "../../lib/time";
 
 export const giveawayCommand: BotCommand = {
@@ -13,6 +14,7 @@ export const giveawayCommand: BotCommand = {
     .setName("giveaway")
     .setNameLocalizations({ "zh-TW": "抽獎" })
     .setDescription("管理抽獎。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
@@ -90,11 +92,13 @@ export const giveawayCommand: BotCommand = {
       return;
     }
 
-    if (!interaction.memberPermissions?.any([PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild])) {
-      await interaction.reply({
-        content: "你需要「管理伺服器」權限才能管理抽獎。",
-        ephemeral: true
-      });
+    if (
+      !(await requireGuildPermission(
+        interaction,
+        PermissionFlagsBits.ManageGuild,
+        "管理伺服器"
+      ))
+    ) {
       return;
     }
 

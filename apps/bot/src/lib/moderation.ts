@@ -1,6 +1,5 @@
 import {
   EmbedBuilder,
-  PermissionFlagsBits,
   type ChatInputCommandInteraction,
   type Guild
 } from "discord.js";
@@ -10,6 +9,7 @@ import { moderationSettingsSchema, type ModerationSettings } from "@guildforge/s
 
 import type { CommandContext } from "../commands/types";
 import { getGuildModuleSettings, isGuildModuleEnabled } from "./modules";
+import { hasGuildPermission } from "./permissions";
 
 const moderationActionLabels: Record<string, string> = {
   BAN: "封鎖",
@@ -52,7 +52,12 @@ export async function requireModerationModule(interaction: ChatInputCommandInter
 
 export async function ensureModerationReady(
   interaction: ChatInputCommandInteraction,
-  context: CommandContext
+  context: CommandContext,
+  options: {
+    permission: bigint;
+    permissionLabel: string;
+    allowConfiguredModeratorRole?: boolean;
+  }
 ) {
   if (!(await requireModerationModule(interaction)) || !interaction.guildId) {
     return null;
@@ -68,9 +73,14 @@ export async function ensureModerationReady(
     return null;
   }
 
-  if (!hasModeratorAccess(interaction, moderation.settings)) {
+  const hasPermission = hasGuildPermission(interaction, options.permission);
+  const hasConfiguredRole =
+    options.allowConfiguredModeratorRole &&
+    hasConfiguredModeratorRole(interaction, moderation.settings);
+
+  if (!hasPermission && !hasConfiguredRole) {
     await interaction.reply({
-      content: "你沒有使用管理指令的權限。",
+      content: `你需要「${options.permissionLabel}」權限才能使用此指令。`,
       ephemeral: true
     });
     return null;
@@ -79,26 +89,10 @@ export async function ensureModerationReady(
   return moderation.settings;
 }
 
-export function hasModeratorAccess(
+export function hasConfiguredModeratorRole(
   interaction: ChatInputCommandInteraction,
   settings: ModerationSettings
 ) {
-  const permissions = interaction.memberPermissions;
-
-  if (
-    permissions?.any([
-      PermissionFlagsBits.Administrator,
-      PermissionFlagsBits.ManageGuild,
-      PermissionFlagsBits.ModerateMembers,
-      PermissionFlagsBits.KickMembers,
-      PermissionFlagsBits.BanMembers,
-      PermissionFlagsBits.ManageMessages,
-      PermissionFlagsBits.ManageChannels
-    ])
-  ) {
-    return true;
-  }
-
   if (settings.moderatorRoleIds.length === 0) {
     return false;
   }

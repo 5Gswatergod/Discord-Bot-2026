@@ -5,6 +5,7 @@ import { PollVisibility } from "@guildforge/database";
 import type { BotCommand } from "../types";
 import { isSendableGuildTextChannel } from "../../lib/channels";
 import { isGuildModuleEnabled } from "../../lib/modules";
+import { requireGuildPermission } from "../../lib/permissions";
 import { publishPollMessage } from "../../lib/polls/polls";
 import { parseDurationToSeconds } from "../../lib/time";
 
@@ -13,6 +14,7 @@ export const pollCommand: BotCommand = {
     .setName("poll")
     .setNameLocalizations({ "zh-TW": "投票" })
     .setDescription("建立投票。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
@@ -68,11 +70,13 @@ export const pollCommand: BotCommand = {
       return;
     }
 
-    if (!interaction.memberPermissions?.any([PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild])) {
-      await interaction.reply({
-        content: "你需要「管理伺服器」權限才能建立投票。",
-        ephemeral: true
-      });
+    if (
+      !(await requireGuildPermission(
+        interaction,
+        PermissionFlagsBits.ManageGuild,
+        "管理伺服器"
+      ))
+    ) {
       return;
     }
 

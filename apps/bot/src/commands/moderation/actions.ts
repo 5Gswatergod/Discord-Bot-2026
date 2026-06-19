@@ -51,7 +51,7 @@ async function ensureBotPermission(
 async function ensureActionTarget(
   interaction: ChatInputCommandInteraction,
   member: GuildMember | null,
-  action: "ban" | "kick" | "timeout" | "mute"
+  action: "ban" | "kick" | "timeout" | "mute" | "warn"
 ) {
   if (!member) {
     if (action === "ban") {
@@ -81,6 +81,36 @@ async function ensureActionTarget(
     return false;
   }
 
+  const guild = interaction.guild;
+  const actor = await guild?.members.fetch(interaction.user.id).catch(() => null);
+
+  if (!guild || !actor) {
+    await interaction.reply({
+      content: "無法確認你的伺服器身分組資料。",
+      ephemeral: true
+    });
+    return false;
+  }
+
+  if (member.id === guild.ownerId) {
+    await interaction.reply({
+      content: "不能對伺服器擁有者執行此操作。",
+      ephemeral: true
+    });
+    return false;
+  }
+
+  if (
+    actor.id !== guild.ownerId &&
+    actor.roles.highest.comparePositionTo(member.roles.highest) <= 0
+  ) {
+    await interaction.reply({
+      content: "你不能對身分組與你同級或高於你的成員執行此操作。",
+      ephemeral: true
+    });
+    return false;
+  }
+
   if (action === "ban" && !member.bannable) {
     await interaction.reply({
       content: "無法封鎖該成員，請檢查身分組階級與機器人權限。",
@@ -100,6 +130,41 @@ async function ensureActionTarget(
   if (action === "timeout" && !member.moderatable) {
     await interaction.reply({
       content: "無法禁言該成員，請檢查身分組階級與機器人權限。",
+      ephemeral: true
+    });
+    return false;
+  }
+
+  return true;
+}
+
+async function ensureManageableRole(
+  interaction: ChatInputCommandInteraction,
+  roleId: string
+) {
+  const guild = interaction.guild;
+  const actor = await guild?.members.fetch(interaction.user.id).catch(() => null);
+  const role = await guild?.roles.fetch(roleId).catch(() => null);
+
+  if (!guild || !actor || !role) {
+    await interaction.reply({
+      content: "找不到設定的靜音身分組。",
+      ephemeral: true
+    });
+    return false;
+  }
+
+  if (!role.editable) {
+    await interaction.reply({
+      content: "機器人的身分組階級不足，無法管理設定的靜音身分組。",
+      ephemeral: true
+    });
+    return false;
+  }
+
+  if (actor.id !== guild.ownerId && actor.roles.highest.comparePositionTo(role) <= 0) {
+    await interaction.reply({
+      content: "你的身分組階級不足，無法管理設定的靜音身分組。",
       ephemeral: true
     });
     return false;
@@ -155,6 +220,7 @@ export const banCommand: BotCommand = {
     .setName("ban")
     .setNameLocalizations({ "zh-TW": "封鎖" })
     .setDescription("從此伺服器封鎖使用者。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
     .setDMPermission(false)
     .addUserOption((option) =>
       option
@@ -179,7 +245,10 @@ export const banCommand: BotCommand = {
         .setMaxValue(604_800)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.BanMembers,
+      permissionLabel: "封鎖成員"
+    });
 
     if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.BanMembers, "封鎖成員"))) {
       return;
@@ -213,6 +282,7 @@ export const kickCommand: BotCommand = {
     .setName("kick")
     .setNameLocalizations({ "zh-TW": "踢除" })
     .setDescription("將成員踢出此伺服器。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
     .setDMPermission(false)
     .addUserOption((option) =>
       option
@@ -229,7 +299,10 @@ export const kickCommand: BotCommand = {
         .setMaxLength(512)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.KickMembers,
+      permissionLabel: "踢除成員"
+    });
 
     if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.KickMembers, "踢除成員"))) {
       return;
@@ -258,6 +331,7 @@ export const timeoutCommand: BotCommand = {
     .setName("timeout")
     .setNameLocalizations({ "zh-TW": "禁言" })
     .setDescription("暫時禁言成員。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .setDMPermission(false)
     .addUserOption((option) =>
       option
@@ -282,7 +356,10 @@ export const timeoutCommand: BotCommand = {
         .setMaxLength(512)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.ModerateMembers,
+      permissionLabel: "禁言成員"
+    });
 
     if (
       !settings ||
@@ -328,6 +405,7 @@ export const warnCommand: BotCommand = {
     .setName("warn")
     .setNameLocalizations({ "zh-TW": "警告" })
     .setDescription("警告成員。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .setDMPermission(false)
     .addUserOption((option) =>
       option
@@ -345,13 +423,22 @@ export const warnCommand: BotCommand = {
         .setMaxLength(512)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.ModerateMembers,
+      permissionLabel: "禁言成員",
+      allowConfiguredModeratorRole: true
+    });
 
     if (!settings || !interaction.guildId || !interaction.guild) {
       return;
     }
 
-    const user = interaction.options.getUser("user", true);
+    const { user, member } = await fetchTargetMember(interaction);
+
+    if (!(await ensureActionTarget(interaction, member, "warn")) || !member) {
+      return;
+    }
+
     const reason = interaction.options.getString("reason", true);
     const moderationCase = await recordAndReply(interaction, context, {
       action: ModerationAction.WARN,
@@ -377,6 +464,7 @@ export const warningsCommand: BotCommand = {
     .setName("warnings")
     .setNameLocalizations({ "zh-TW": "警告紀錄" })
     .setDescription("顯示成員的警告紀錄。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .setDMPermission(false)
     .addUserOption((option) =>
       option
@@ -386,7 +474,11 @@ export const warningsCommand: BotCommand = {
         .setRequired(true)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.ModerateMembers,
+      permissionLabel: "禁言成員",
+      allowConfiguredModeratorRole: true
+    });
 
     if (!settings || !interaction.guildId) {
       return;
@@ -429,6 +521,7 @@ export const clearCommand: BotCommand = {
     .setName("clear")
     .setNameLocalizations({ "zh-TW": "清除訊息" })
     .setDescription("批次刪除近期訊息。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
     .setDMPermission(false)
     .addIntegerOption((option) =>
       option
@@ -446,7 +539,10 @@ export const clearCommand: BotCommand = {
         .setDescription("只刪除此使用者傳送的訊息。")
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.ManageMessages,
+      permissionLabel: "管理訊息"
+    });
 
     if (
       !settings ||
@@ -493,6 +589,7 @@ export const muteCommand: BotCommand = {
     .setName("mute")
     .setNameLocalizations({ "zh-TW": "靜音" })
     .setDescription("將設定的靜音身分組指派給成員。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
     .setDMPermission(false)
     .addUserOption((option) =>
       option
@@ -509,7 +606,10 @@ export const muteCommand: BotCommand = {
         .setMaxLength(512)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.ManageRoles,
+      permissionLabel: "管理身分組"
+    });
 
     if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageRoles, "管理身分組"))) {
       return;
@@ -520,6 +620,10 @@ export const muteCommand: BotCommand = {
         content: "此伺服器尚未設定靜音身分組。",
         ephemeral: true
       });
+      return;
+    }
+
+    if (!(await ensureManageableRole(interaction, settings.muteRoleId))) {
       return;
     }
 
@@ -546,6 +650,7 @@ export const unmuteCommand: BotCommand = {
     .setName("unmute")
     .setNameLocalizations({ "zh-TW": "解除靜音" })
     .setDescription("移除成員的靜音身分組。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
     .setDMPermission(false)
     .addUserOption((option) =>
       option
@@ -562,7 +667,10 @@ export const unmuteCommand: BotCommand = {
         .setMaxLength(512)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.ManageRoles,
+      permissionLabel: "管理身分組"
+    });
 
     if (!settings || !(await ensureBotPermission(interaction, PermissionFlagsBits.ManageRoles, "管理身分組"))) {
       return;
@@ -576,13 +684,13 @@ export const unmuteCommand: BotCommand = {
       return;
     }
 
+    if (!(await ensureManageableRole(interaction, settings.muteRoleId))) {
+      return;
+    }
+
     const { user, member } = await fetchTargetMember(interaction);
 
-    if (!member) {
-      await interaction.reply({
-        content: "該使用者目前不是此伺服器的成員。",
-        ephemeral: true
-      });
+    if (!(await ensureActionTarget(interaction, member, "mute")) || !member) {
       return;
     }
 
@@ -603,6 +711,7 @@ export const slowmodeCommand: BotCommand = {
     .setName("slowmode")
     .setNameLocalizations({ "zh-TW": "慢速模式" })
     .setDescription("設定文字頻道的慢速模式。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .setDMPermission(false)
     .addIntegerOption((option) =>
       option
@@ -621,7 +730,10 @@ export const slowmodeCommand: BotCommand = {
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.ManageChannels,
+      permissionLabel: "管理頻道"
+    });
 
     if (
       !settings ||
@@ -657,6 +769,7 @@ export const lockCommand: BotCommand = {
     .setName("lock")
     .setNameLocalizations({ "zh-TW": "鎖定頻道" })
     .setDescription("禁止 @everyone 在頻道中傳送訊息。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .setDMPermission(false)
     .addChannelOption((option) =>
       option
@@ -673,7 +786,10 @@ export const lockCommand: BotCommand = {
         .setMaxLength(512)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.ManageChannels,
+      permissionLabel: "管理頻道"
+    });
 
     if (
       !settings ||
@@ -717,6 +833,7 @@ export const unlockCommand: BotCommand = {
     .setName("unlock")
     .setNameLocalizations({ "zh-TW": "解鎖頻道" })
     .setDescription("恢復 @everyone 在頻道中傳送訊息的權限。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .setDMPermission(false)
     .addChannelOption((option) =>
       option
@@ -733,7 +850,10 @@ export const unlockCommand: BotCommand = {
         .setMaxLength(512)
     ),
   async execute(interaction, context) {
-    const settings = await ensureModerationReady(interaction, context);
+    const settings = await ensureModerationReady(interaction, context, {
+      permission: PermissionFlagsBits.ManageChannels,
+      permissionLabel: "管理頻道"
+    });
 
     if (
       !settings ||

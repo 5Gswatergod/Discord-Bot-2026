@@ -1,6 +1,7 @@
 import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 
 import type { BotCommand } from "../types";
+import { requireGuildPermission } from "../../lib/permissions";
 import { leaderboardCommand, rankCommand } from "./rank";
 
 export const xpCommand: BotCommand = {
@@ -8,6 +9,7 @@ export const xpCommand: BotCommand = {
     .setName("xp")
     .setNameLocalizations({ "zh-TW": "經驗值" })
     .setDescription("管理經驗值紀錄。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
@@ -30,11 +32,13 @@ export const xpCommand: BotCommand = {
       return;
     }
 
-    if (!interaction.memberPermissions?.any([PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild])) {
-      await interaction.reply({
-        content: "你需要「管理伺服器」權限才能重設經驗值。",
-        ephemeral: true
-      });
+    if (
+      !(await requireGuildPermission(
+        interaction,
+        PermissionFlagsBits.ManageGuild,
+        "管理伺服器"
+      ))
+    ) {
       return;
     }
 

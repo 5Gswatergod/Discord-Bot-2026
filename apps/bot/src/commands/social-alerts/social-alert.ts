@@ -2,6 +2,7 @@ import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 
 import type { BotCommand } from "../types";
 import { isGuildModuleEnabled } from "../../lib/modules";
+import { requireGuildPermission } from "../../lib/permissions";
 import { checkSocialAlerts, testSocialAlert } from "../../lib/social-alerts/social-alerts";
 
 export const socialAlertCommand: BotCommand = {
@@ -9,6 +10,7 @@ export const socialAlertCommand: BotCommand = {
     .setName("social-alert")
     .setNameLocalizations({ "zh-TW": "社群通知" })
     .setDescription("管理社群通知檢查。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
@@ -38,11 +40,13 @@ export const socialAlertCommand: BotCommand = {
       return;
     }
 
-    if (!interaction.memberPermissions?.any([PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild])) {
-      await interaction.reply({
-        content: "你需要「管理伺服器」權限才能管理社群通知。",
-        ephemeral: true
-      });
+    if (
+      !(await requireGuildPermission(
+        interaction,
+        PermissionFlagsBits.ManageGuild,
+        "管理伺服器"
+      ))
+    ) {
       return;
     }
 

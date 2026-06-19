@@ -3,12 +3,14 @@ import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { BotCommand } from "../types";
 import { publishReactionRolePanel } from "../../lib/reaction-roles/reaction-roles";
 import { isGuildModuleEnabled } from "../../lib/modules";
+import { requireGuildPermission } from "../../lib/permissions";
 
 export const reactionRoleCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("reaction-role")
     .setNameLocalizations({ "zh-TW": "自助身分組" })
     .setDescription("管理自助身分組面板。")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
@@ -32,11 +34,13 @@ export const reactionRoleCommand: BotCommand = {
       return;
     }
 
-    if (!interaction.memberPermissions?.any([PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild])) {
-      await interaction.reply({
-        content: "你需要「管理伺服器」權限才能發佈自助身分組面板。",
-        ephemeral: true
-      });
+    if (
+      !(await requireGuildPermission(
+        interaction,
+        PermissionFlagsBits.ManageGuild,
+        "管理伺服器"
+      ))
+    ) {
       return;
     }
 
