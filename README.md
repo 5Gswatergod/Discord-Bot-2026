@@ -1,6 +1,6 @@
-# GuildForge
+# Hydrava
 
-GuildForge is a self-hosted, modular Discord community management system. It is inspired by the broad category of Discord administration bots, but it uses original naming, structure, UI, and code.
+Hydrava is a self-hosted, modular Discord community management system. It is inspired by the broad category of Discord administration bots, but it uses original naming, structure, UI, and code.
 
 This repository currently implements Phases 1 through 5 from `Task.md`:
 

@@ -9,12 +9,14 @@ const config: Config = {
         border: "hsl(var(--border))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        card: "hsl(var(--card))",
         muted: "hsl(var(--muted))",
         "muted-foreground": "hsl(var(--muted-foreground))",
         primary: "hsl(var(--primary))",
         "primary-foreground": "hsl(var(--primary-foreground))",
         accent: "hsl(var(--accent))",
-        "accent-foreground": "hsl(var(--accent-foreground))"
+        "accent-foreground": "hsl(var(--accent-foreground))",
+        destructive: "hsl(var(--destructive))"
       },
       borderRadius: {
         lg: "8px",
@@ -22,7 +24,7 @@ const config: Config = {
         sm: "4px"
       },
       boxShadow: {
-        panel: "0 1px 2px rgba(15, 23, 42, 0.06)"
+        panel: "0 16px 48px rgba(3, 7, 18, 0.18)"
       }
     }
   },

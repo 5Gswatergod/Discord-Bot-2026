@@ -13,8 +13,7 @@ type HomePageProps = {
 
 const authErrorMessages: Record<string, string> = {
   OAuthSignin: "無法開始 Discord 登入，請檢查 OAuth 應用程式設定。",
-  OAuthCallback:
-    "Discord 拒絕或無法完成 OAuth 回呼，請檢查用戶端密鑰與完整的重新導向網址。",
+  OAuthCallback: "Discord 拒絕或無法完成 OAuth 回呼，請檢查用戶端密鑰與完整的重新導向網址。",
   OAuthCreateAccount: "無法儲存 Discord 帳號。",
   Callback: "驗證回呼失敗。",
   OAuthAccountNotLinked: "此 Discord 帳號已連結至其他登入方式。",
@@ -38,14 +37,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     <main className="flex min-h-screen items-center justify-center px-6 py-10">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <h1 className="text-xl font-semibold leading-7">GuildForge</h1>
+          <h1 className="text-xl font-semibold leading-7">Hydrava</h1>
           <CardDescription>集中管理你擁有權限的 Discord 伺服器。</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           {errorMessage ? (
             <div
               role="alert"
-              className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900"
+              className="rounded-md border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-200"
             >
               <p className="font-medium">Discord 登入失敗</p>
               <p className="mt-1">{errorMessage}</p>
