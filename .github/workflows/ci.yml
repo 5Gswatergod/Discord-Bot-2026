@@ -4,8 +4,10 @@ on:
   pull_request:
   push:
     branches:
-      - main
       - master
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -13,7 +15,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/guildforge?schema=public
       REDIS_URL: redis://localhost:6379
-      DISCORD_CLIENT_ID: "123456789012345678"
+      DISCORD_CLIENT_ID: build-client-id
       DISCORD_CLIENT_SECRET: dummy-client-secret
       DISCORD_BOT_TOKEN: dummy.bot.token
       NEXTAUTH_SECRET: dummy-nextauth-secret-at-least-16
@@ -23,15 +25,17 @@ jobs:
       TWITCH_ACCESS_TOKEN: ""
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: pnpm
@@ -48,5 +52,96 @@ jobs:
       - name: Lint
         run: corepack pnpm lint
 
+      - name: Test
+        run: corepack pnpm test
+
       - name: Build
         run: corepack pnpm build
+
+  docker-verify:
+    name: Docker Verify (${{ matrix.target }})
+    needs: verify
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: bot
+            image: ghcr.io/5gswatergod/discord-bot-2026-bot
+            description: GuildForge Discord bot
+          - target: dashboard
+            image: ghcr.io/5gswatergod/discord-bot-2026-dashboard
+            description: GuildForge management dashboard
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Build
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ./Dockerfile
+          target: ${{ matrix.target }}
+          platforms: linux/amd64
+          push: false
+          tags: ${{ matrix.image }}:pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }},ignore-error=true
+
+  docker-publish:
+    name: Docker Publish (${{ matrix.target }})
+    needs: verify
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: bot
+            image: ghcr.io/5gswatergod/discord-bot-2026-bot
+            description: GuildForge Discord bot
+          - target: dashboard
+            image: ghcr.io/5gswatergod/discord-bot-2026-dashboard
+            description: GuildForge management dashboard
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ./Dockerfile
+          target: ${{ matrix.target }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ matrix.image }}:sha-${{ github.sha }}
+            ${{ matrix.image }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.description=${{ matrix.description }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }},ignore-error=true
