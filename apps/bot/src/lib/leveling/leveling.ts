@@ -3,6 +3,7 @@ import { EmbedBuilder, type Message } from "discord.js";
 import { formatTemplate, getLevelFromXp, levelingSettingsSchema } from "@guildforge/shared";
 
 import type { CommandContext } from "../../commands/types";
+import { grantLevelReward } from "../economy/economy";
 import { getGuildModuleSettings, isGuildModuleEnabled } from "../modules";
 
 export async function getLevelingSettings(context: CommandContext, guildId: string) {
@@ -120,7 +121,7 @@ export async function handleLevelingMessage(message: Message<true>, context: Com
 
   const channelId = settings.levelUpChannelId ?? message.channelId;
   const channel = await message.guild.channels.fetch(channelId).catch(() => null);
-  const content = formatTemplate(settings.levelUpMessage, {
+  const levelUpContent = formatTemplate(settings.levelUpMessage, {
     user: `<@${message.author.id}>`,
     username: message.author.username,
     server: message.guild.name,
@@ -128,6 +129,22 @@ export async function handleLevelingMessage(message: Message<true>, context: Com
     level: newLevel,
     xp: newXp
   });
+  const economyReward = await grantLevelReward(context, {
+    guildId: message.guild.id,
+    userId: message.author.id,
+    level: newLevel
+  }).catch((error) => {
+    context.logger.warn("Failed to grant economy level reward", {
+      guildId: message.guild.id,
+      userId: message.author.id,
+      level: newLevel,
+      error
+    });
+    return null;
+  });
+  const content = economyReward
+    ? `${levelUpContent}\n你獲得了 ${economyReward.amount.toLocaleString("zh-TW")} ${economyReward.currencySymbol}。`
+    : levelUpContent;
 
   if (channel?.isTextBased()) {
     await channel.send({ content }).catch((error) => {

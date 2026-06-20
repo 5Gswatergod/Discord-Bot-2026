@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --ext .ts",
+    "test": "tsx --test src/lib/economy/calculations.test.ts src/commands/commands.test.ts",
     "register": "tsx src/register-commands.ts"
   },
   "dependencies": {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   autoModRuleInputSchema,
   autoModTriggers,
+  economySettingsSchema,
   logEvents,
   levelingSettingsSchema,
   moduleDescriptions,
@@ -16,6 +17,7 @@ import {
   welcomeSettingsSchema,
   type AutoModRuleInput,
   type CustomCommandInput,
+  type EconomyShopItemInput,
   type GuildLogEvent,
   type GuildModuleKey,
   type ReactionRolePanelInput,
@@ -25,6 +27,8 @@ import {
 import { SignOutButton } from "@/components/auth-button";
 import { AutoModSettingsForm } from "@/components/settings/automod-settings-form";
 import { CustomCommandsForm } from "@/components/settings/custom-commands-form";
+import { EconomySettingsForm } from "@/components/settings/economy-settings-form";
+import { EconomyShopForm } from "@/components/settings/economy-shop-form";
 import { GiveawaysForm, type DashboardGiveawayInput } from "@/components/settings/giveaways-form";
 import { LevelingSettingsForm } from "@/components/settings/leveling-settings-form";
 import { LoggingSettingsForm } from "@/components/settings/logging-settings-form";
@@ -59,8 +63,27 @@ const auditActionLabels: Record<string, string> = {
   DASHBOARD_GIVEAWAYS_UPDATE: "更新抽獎",
   DASHBOARD_POLLS_UPDATE: "更新投票",
   DASHBOARD_SOCIAL_ALERTS_UPDATE: "更新社群通知",
+  DASHBOARD_ECONOMY_SETTINGS_UPDATE: "更新貨幣系統設定",
+  DASHBOARD_ECONOMY_SHOP_UPDATE: "更新商店商品",
+  ECONOMY_ADMIN_ADD: "管理員增加餘額",
+  ECONOMY_ADMIN_REMOVE: "管理員扣除餘額",
+  ECONOMY_ADMIN_SET: "管理員設定餘額",
   CUSTOM_COMMAND_RUN: "執行自訂指令",
   LEVEL_UP: "成員升級"
+};
+
+const economyTransactionLabels: Record<string, string> = {
+  MESSAGE_REWARD: "聊天獎勵",
+  DAILY_REWARD: "每日簽到",
+  TRANSFER_SENT: "轉出",
+  TRANSFER_RECEIVED: "轉入",
+  TRANSFER_FEE: "轉帳手續費",
+  LEVEL_REWARD: "升級獎勵",
+  SHOP_PURCHASE: "購買商品",
+  ADMIN_ADD: "管理員增加",
+  ADMIN_REMOVE: "管理員扣除",
+  ADMIN_SET: "管理員設定",
+  REFUND: "退款"
 };
 
 const moderationAuditLabels: Record<string, string> = {
@@ -131,6 +154,28 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
           }
         ]
       },
+      economyAccounts: {
+        take: 5,
+        orderBy: [
+          {
+            balance: "desc"
+          },
+          {
+            updatedAt: "asc"
+          }
+        ]
+      },
+      economyTransactions: {
+        take: 10,
+        orderBy: {
+          createdAt: "desc"
+        }
+      },
+      economyShopItems: {
+        orderBy: {
+          createdAt: "asc"
+        }
+      },
       autoModRules: true,
       customCommands: {
         orderBy: {
@@ -198,15 +243,16 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
   const levelingSettings = levelingSettingsSchema.parse(
     moduleConfigMap.get("LEVELING")?.settings ?? {}
   );
+  const economySettings = economySettingsSchema.parse(
+    moduleConfigMap.get("ECONOMY")?.settings ?? {}
+  );
   const levelRewards =
     dbGuild?.levelRewards.map((reward) => ({
       level: reward.level,
       roleId: reward.roleId,
       stackable: reward.stackable
     })) ?? [];
-  const autoModRuleMap = new Map(
-    (dbGuild?.autoModRules ?? []).map((rule) => [rule.trigger, rule])
-  );
+  const autoModRuleMap = new Map((dbGuild?.autoModRules ?? []).map((rule) => [rule.trigger, rule]));
   const autoModRules: AutoModRuleInput[] = autoModTriggers.map((trigger) => {
     const rule = autoModRuleMap.get(trigger);
 
@@ -294,6 +340,19 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         enabled: alert.enabled
       })
     ) ?? [];
+  const economyShopItems: EconomyShopItemInput[] =
+    dbGuild?.economyShopItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      type: item.type,
+      price: item.price,
+      roleId: item.roleId,
+      stock: item.stock,
+      soldCount: item.soldCount,
+      perUserLimit: item.perUserLimit,
+      status: item.status
+    })) ?? [];
 
   return (
     <main className="min-h-screen px-6 py-8">
@@ -429,8 +488,7 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
                   dbGuild?.warnings.map((warning) => (
                     <div key={warning.id} className="rounded-md border border-border p-3 text-sm">
                       <p className="font-medium">
-                        <span className="text-muted-foreground">對象：</span>{" "}
-                        {warning.targetUserId}
+                        <span className="text-muted-foreground">對象：</span> {warning.targetUserId}
                       </p>
                       <p className="mt-1 text-muted-foreground">{warning.reason}</p>
                     </div>
@@ -454,6 +512,87 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
                 memberCount={guild.memberCount}
                 settings={welcomeSettings}
               />
+            </CardContent>
+          </Card>
+        </section>
+
+        <section>
+          <Card>
+            <CardHeader>
+              <CardTitle>貨幣與商店</CardTitle>
+              <CardDescription>設定貨幣獎勵、每日簽到、成員轉帳與升級獎勵。</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <EconomySettingsForm guildId={params.guildId} settings={economySettings} />
+              <div className="grid gap-4 border-t border-border pt-6 lg:grid-cols-2">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">餘額排行榜</p>
+                  {(dbGuild?.economyAccounts ?? []).length > 0 ? (
+                    dbGuild?.economyAccounts.map((account, index) => (
+                      <div
+                        key={account.id}
+                        className="flex items-center justify-between gap-3 rounded-md border border-border p-3 text-sm"
+                      >
+                        <p className="min-w-0 truncate font-medium">
+                          #{index + 1} {account.userId}
+                        </p>
+                        <p className="shrink-0 text-muted-foreground">
+                          {account.balance.toLocaleString("zh-TW")} {economySettings.currencySymbol}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">目前尚無貨幣帳戶。</p>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">最近交易</p>
+                  {(dbGuild?.economyTransactions ?? []).length > 0 ? (
+                    dbGuild?.economyTransactions.map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="flex items-center justify-between gap-3 rounded-md border border-border p-3 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
+                            {economyTransactionLabels[transaction.type] ?? transaction.type}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {transaction.userId} · {transaction.createdAt.toLocaleString("zh-TW")}
+                          </p>
+                        </div>
+                        <p
+                          className={
+                            transaction.amount >= 0
+                              ? "shrink-0 font-medium text-primary"
+                              : "shrink-0 font-medium text-destructive"
+                          }
+                        >
+                          {transaction.amount >= 0 ? "+" : ""}
+                          {transaction.amount.toLocaleString("zh-TW")}{" "}
+                          {economySettings.currencySymbol}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">目前尚無交易紀錄。</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section>
+          <Card>
+            <CardHeader>
+              <CardTitle>商店管理</CardTitle>
+              <CardDescription>
+                建立身分組與收藏品商品；已出售商品會保留類型與交易歷史。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EconomyShopForm guildId={params.guildId} items={economyShopItems} />
             </CardContent>
           </Card>
         </section>

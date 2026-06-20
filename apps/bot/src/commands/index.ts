@@ -7,6 +7,9 @@ import { reactionRoleCommands } from "./reaction-roles/reaction-role";
 import { giveawayCommands } from "./giveaways/giveaway";
 import { pollCommands } from "./polls/poll";
 import { socialAlertCommands } from "./social-alerts/social-alert";
+import { economyCommands } from "./economy/economy";
+import { shopCommands } from "./economy/shop";
+import { economyAdminCommands } from "./economy/admin";
 import type { BotCommand } from "./types";
 
 export const commands = [
@@ -14,6 +17,9 @@ export const commands = [
   serverInfoCommand,
   userInfoCommand,
   ...levelingCommands,
+  ...economyCommands,
+  ...shopCommands,
+  ...economyAdminCommands,
   ...moderationCommands,
   ...reactionRoleCommands,
   ...giveawayCommands,

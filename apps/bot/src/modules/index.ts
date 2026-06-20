@@ -1,4 +1,9 @@
-import { moduleDescriptions, moduleKeys, moduleLabels, type GuildModuleKey } from "@guildforge/shared";
+import {
+  moduleDescriptions,
+  moduleKeys,
+  moduleLabels,
+  type GuildModuleKey
+} from "@guildforge/shared";
 
 export interface ModuleDefinition {
   key: GuildModuleKey;
@@ -11,6 +16,7 @@ const phaseByModule: Record<GuildModuleKey, ModuleDefinition["phase"]> = {
   MODERATION: 2,
   AUTO_MODERATION: 3,
   LEVELING: 3,
+  ECONOMY: 5,
   WELCOME: 2,
   REACTION_ROLES: 4,
   CUSTOM_COMMANDS: 3,

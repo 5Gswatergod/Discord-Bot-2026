@@ -23,6 +23,27 @@ export async function handleInteractionCreate(interaction: Interaction, context:
     return;
   }
 
+  if (interaction.isAutocomplete()) {
+    const command = commandMap.get(interaction.commandName);
+
+    if (!command?.autocomplete) {
+      await interaction.respond([]);
+      return;
+    }
+
+    try {
+      await command.autocomplete(interaction, context);
+    } catch (error) {
+      context.logger.error("Slash command autocomplete failed", {
+        command: interaction.commandName,
+        guildId: interaction.guildId,
+        error
+      });
+      await interaction.respond([]).catch(() => null);
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) {
     return;
   }

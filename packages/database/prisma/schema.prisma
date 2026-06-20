@@ -11,6 +11,7 @@ enum ModuleKey {
   MODERATION
   AUTO_MODERATION
   LEVELING
+  ECONOMY
   WELCOME
   REACTION_ROLES
   CUSTOM_COMMANDS
@@ -100,6 +101,31 @@ enum SocialAlertType {
   RSS
 }
 
+enum EconomyTransactionType {
+  MESSAGE_REWARD
+  DAILY_REWARD
+  TRANSFER_SENT
+  TRANSFER_RECEIVED
+  TRANSFER_FEE
+  LEVEL_REWARD
+  SHOP_PURCHASE
+  ADMIN_ADD
+  ADMIN_REMOVE
+  ADMIN_SET
+  REFUND
+}
+
+enum EconomyShopItemType {
+  ROLE
+  COLLECTIBLE
+}
+
+enum EconomyShopItemStatus {
+  ACTIVE
+  DISABLED
+  ARCHIVED
+}
+
 model User {
   id        String   @id
   username  String
@@ -138,6 +164,10 @@ model Guild {
   pollOptions         PollOption[]
   pollVotes           PollVote[]
   socialAlerts        SocialAlert[]
+  economyAccounts     EconomyAccount[]
+  economyTransactions EconomyTransaction[]
+  economyShopItems    EconomyShopItem[]
+  economyInventory    EconomyInventoryItem[]
   auditLogs           AuditLog[]
 }
 
@@ -197,7 +227,7 @@ model Warning {
   reason          String
   createdAt       DateTime @default(now())
 
-  guild Guild          @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guild Guild           @relation(fields: [guildId], references: [id], onDelete: Cascade)
   case  ModerationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
 
   @@index([guildId, targetUserId])
@@ -256,19 +286,105 @@ model LevelReward {
   @@index([guildId, level])
 }
 
+model EconomyAccount {
+  id                  String    @id @default(cuid())
+  guildId             String
+  userId              String
+  balance             Int       @default(0)
+  lastDailyClaimDate  String?
+  dailyStreak         Int       @default(0)
+  lastMessageRewardAt DateTime?
+  lastLevelRewarded   Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  guild        Guild                  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  inventory    EconomyInventoryItem[]
+  transactions EconomyTransaction[]
+
+  @@unique([guildId, userId])
+  @@index([guildId, balance])
+}
+
+model EconomyTransaction {
+  id            String                 @id @default(cuid())
+  guildId       String
+  accountId     String
+  userId        String
+  type          EconomyTransactionType
+  amount        Int
+  balanceAfter  Int
+  actorUserId   String?
+  relatedUserId String?
+  shopItemId    String?
+  referenceId   String?
+  description   String?
+  metadata      Json?
+  createdAt     DateTime               @default(now())
+
+  guild    Guild            @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  account  EconomyAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  shopItem EconomyShopItem? @relation(fields: [shopItemId], references: [id], onDelete: SetNull)
+
+  @@index([guildId, createdAt])
+  @@index([guildId, userId, createdAt])
+  @@index([referenceId])
+}
+
+model EconomyShopItem {
+  id           String                @id @default(cuid())
+  guildId      String
+  name         String
+  description  String?
+  type         EconomyShopItemType
+  price        Int
+  roleId       String?
+  stock        Int?
+  soldCount    Int                   @default(0)
+  perUserLimit Int?
+  status       EconomyShopItemStatus @default(ACTIVE)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  guild        Guild                  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  inventory    EconomyInventoryItem[]
+  transactions EconomyTransaction[]
+
+  @@index([guildId, status])
+  @@index([guildId, type])
+}
+
+model EconomyInventoryItem {
+  id         String   @id @default(cuid())
+  guildId    String
+  accountId  String
+  userId     String
+  shopItemId String
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  guild    Guild           @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  account  EconomyAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  shopItem EconomyShopItem @relation(fields: [shopItemId], references: [id], onDelete: Restrict)
+
+  @@unique([accountId, shopItemId])
+  @@index([guildId, userId])
+}
+
 model WelcomeConfig {
-  id                String   @id @default(cuid())
-  guildId           String   @unique
-  enabled           Boolean  @default(false)
-  welcomeChannelId  String?
-  welcomeMessage    String   @default("歡迎 {user} 加入 {server}！")
-  goodbyeChannelId  String?
-  goodbyeMessage    String   @default("{username} 離開了 {server}。")
-  autoRoleId        String?
-  useEmbed          Boolean  @default(true)
-  embedColor        String   @default("#24b47e")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String   @id @default(cuid())
+  guildId          String   @unique
+  enabled          Boolean  @default(false)
+  welcomeChannelId String?
+  welcomeMessage   String   @default("歡迎 {user} 加入 {server}！")
+  goodbyeChannelId String?
+  goodbyeMessage   String   @default("{username} 離開了 {server}。")
+  autoRoleId       String?
+  useEmbed         Boolean  @default(true)
+  embedColor       String   @default("#24b47e")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }
@@ -305,7 +421,7 @@ model ReactionRoleOption {
   createdAt DateTime               @default(now())
   updatedAt DateTime               @updatedAt
 
-  guild Guild            @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guild Guild             @relation(fields: [guildId], references: [id], onDelete: Cascade)
   panel ReactionRolePanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
 
   @@unique([panelId, roleId])
@@ -413,8 +529,8 @@ model PollOption {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 
-  guild Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  poll  Poll      @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  guild Guild      @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes PollVote[]
 
   @@unique([pollId, sortOrder])

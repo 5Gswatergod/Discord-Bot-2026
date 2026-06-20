@@ -1,4 +1,5 @@
 import type {
+  AutocompleteInteraction,
   ChatInputCommandInteraction,
   Client,
   SlashCommandBuilder,
@@ -26,4 +27,5 @@ export interface CommandContext {
 export interface BotCommand {
   data: SlashCommandData;
   execute(interaction: ChatInputCommandInteraction, context: CommandContext): Promise<void>;
+  autocomplete?(interaction: AutocompleteInteraction, context: CommandContext): Promise<void>;
 }
