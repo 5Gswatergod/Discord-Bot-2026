@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS base
+FROM node:22-bookworm-slim AS dependencies
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates openssl \
@@ -14,30 +14,37 @@ COPY packages/config/package.json packages/config/package.json
 COPY packages/database/package.json packages/database/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN corepack pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    PRISMA_SKIP_POSTINSTALL_GENERATE=true corepack pnpm install --frozen-lockfile
 
-COPY apps apps
+FROM dependencies AS dashboard
+
 COPY packages packages
+COPY apps/dashboard apps/dashboard
 
 RUN DATABASE_URL="postgresql://guildforge:build-only@localhost:5432/guildforge?schema=public" \
     corepack pnpm db:generate
 
-FROM base AS dashboard
-
 ENV NODE_ENV=production
-ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guildforge?schema=public
-ENV REDIS_URL=redis://localhost:6379
-ENV DISCORD_CLIENT_ID=123456789012345678
-ENV DISCORD_CLIENT_SECRET=build-placeholder
-ENV NEXTAUTH_SECRET=build-placeholder-at-least-16
-ENV NEXTAUTH_URL=http://localhost:3000
-ENV APP_URL=http://localhost:3000
 
-RUN corepack pnpm --filter @guildforge/dashboard build
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/guildforge?schema=public" \
+    REDIS_URL="redis://localhost:6379" \
+    DISCORD_CLIENT_ID="build-client-id" \
+    DISCORD_CLIENT_SECRET="build-placeholder" \
+    NEXTAUTH_SECRET="build-placeholder-at-least-16" \
+    NEXTAUTH_URL="http://localhost:3000" \
+    APP_URL="http://localhost:3000" \
+    corepack pnpm --filter @guildforge/dashboard build
 
 CMD ["corepack", "pnpm", "--filter", "@guildforge/dashboard", "start"]
 
-FROM base AS bot
+FROM dependencies AS bot
+
+COPY packages packages
+COPY apps/bot apps/bot
+
+RUN DATABASE_URL="postgresql://guildforge:build-only@localhost:5432/guildforge?schema=public" \
+    corepack pnpm db:generate
 
 ENV NODE_ENV=production
 

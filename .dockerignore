@@ -1,5 +1,7 @@
 node_modules
 **/node_modules
+.git
+.github
 .next
 **/.next
 dist
@@ -11,5 +13,12 @@ packages/database/src/generated
 .env
 .env.local
 .env.*.local
+.deploy.env
+.deploy.lock
 dashboard-dev.out.log
 dashboard-dev.err.log
+oracle.key
+oracle.key.pub
+ssh_start.bat
+update.txt
+*.md

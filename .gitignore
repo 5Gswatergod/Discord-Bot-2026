@@ -14,3 +14,9 @@ Dockerfile.local
 
 oracle.key
 oracle.key.pub
+ssh_start.bat
+update.txt
+.deploy.env
+.deploy.lock
+guildforge-actions
+guildforge-actions.pub
