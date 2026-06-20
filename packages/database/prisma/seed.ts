@@ -43,7 +43,7 @@ async function main() {
     where: { id: demoGuildId },
     create: {
       id: demoGuildId,
-      name: "GuildForge Demo",
+      name: "Hydrava Demo",
       memberCount: 42,
       botJoinedAt: new Date(),
       config: {
@@ -54,7 +54,7 @@ async function main() {
       }
     },
     update: {
-      name: "GuildForge Demo",
+      name: "Hydrava Demo",
       memberCount: 42
     }
   });

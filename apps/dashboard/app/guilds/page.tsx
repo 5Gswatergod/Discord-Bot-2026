@@ -20,7 +20,7 @@ export default async function GuildSelectorPage() {
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
         <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-primary">GuildForge</p>
+            <p className="text-sm font-medium text-primary">Hydrava</p>
             <h1 className="mt-1 text-2xl font-semibold">伺服器</h1>
           </div>
           <SignOutButton />
@@ -33,7 +33,7 @@ export default async function GuildSelectorPage() {
             ))}
           </section>
         ) : (
-          <section className="rounded-lg border border-border bg-white p-8 text-sm text-muted-foreground shadow-panel">
+          <section className="rounded-lg border border-border bg-card p-8 text-sm text-muted-foreground shadow-panel">
             Discord 沒有回傳你可管理的伺服器。
           </section>
         )}

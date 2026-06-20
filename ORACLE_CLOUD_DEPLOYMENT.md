@@ -1,12 +1,12 @@
-# GuildForge Oracle Cloud Always Free 部署教學
+# Hydrava Oracle Cloud Always Free 部署教學
 
-本文件說明如何將 GuildForge 部署到 Oracle Cloud Infrastructure（OCI）Always Free Compute。
+本文件說明如何將 Hydrava 部署到 Oracle Cloud Infrastructure（OCI）Always Free Compute。
 
 部署架構：
 
 - Oracle Cloud Ubuntu VM
 - Docker Engine 與 Docker Compose
-- GuildForge Dashboard
+- Hydrava Dashboard
 - Discord Bot
 - PostgreSQL
 - Redis
@@ -89,7 +89,7 @@ Caddy 需要 domain 正確指向 VM，才能自動取得 HTTPS certificate。
 - **Server Members Intent**
 - **Message Content Intent**
 
-GuildForge 的 welcome、leveling、AutoMod、custom commands 和部分 logging 功能需要這些 intents。
+Hydrava 的 welcome、leveling、AutoMod、custom commands 和部分 logging 功能需要這些 intents。
 
 ## 4. 建立 Oracle Cloud VM
 
@@ -307,7 +307,7 @@ APP_URL=https://APP_DOMAIN
 chmod 600 .env
 ```
 
-## 12. 啟動 GuildForge
+## 12. 啟動 Hydrava
 
 建置 images：
 
