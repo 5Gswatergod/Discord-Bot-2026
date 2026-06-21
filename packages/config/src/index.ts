@@ -25,6 +25,7 @@ export const botEnvSchema = sharedEnvSchema.extend({
 export const dashboardEnvSchema = sharedEnvSchema.extend({
   DISCORD_CLIENT_ID: z.string().min(1),
   DISCORD_CLIENT_SECRET: z.string().min(1),
+  DISCORD_BOT_TOKEN: z.string().min(1),
   DISCORD_BOT_PERMISSIONS: z.coerce.number().int().positive().default(8),
   NEXTAUTH_SECRET: z.string().min(16),
   NEXTAUTH_URL: z.string().url(),

@@ -31,6 +31,7 @@ RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/guildforge?schem
     REDIS_URL="redis://localhost:6379" \
     DISCORD_CLIENT_ID="build-client-id" \
     DISCORD_CLIENT_SECRET="build-placeholder" \
+    DISCORD_BOT_TOKEN="build.bot.token" \
     NEXTAUTH_SECRET="build-placeholder-at-least-16" \
     NEXTAUTH_URL="http://localhost:3000" \
     APP_URL="http://localhost:3000" \

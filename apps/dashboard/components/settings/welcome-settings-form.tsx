@@ -6,6 +6,10 @@ import { useMemo, useState, useTransition } from "react";
 
 import type { WelcomeSettings } from "@guildforge/shared";
 
+import {
+  DiscordChannelSelect,
+  DiscordRoleSelect
+} from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,12 +95,18 @@ export function WelcomeSettingsForm({
       </label>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-medium">
-          歡迎訊息頻道 ID
-          <Input value={welcomeChannelId} onChange={(event) => setWelcomeChannelId(event.target.value)} />
+          歡迎訊息頻道
+          <DiscordChannelSelect
+            value={welcomeChannelId}
+            onValueChange={setWelcomeChannelId}
+          />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          離開訊息頻道 ID
-          <Input value={goodbyeChannelId} onChange={(event) => setGoodbyeChannelId(event.target.value)} />
+          離開訊息頻道
+          <DiscordChannelSelect
+            value={goodbyeChannelId}
+            onValueChange={setGoodbyeChannelId}
+          />
         </label>
       </div>
       <label className="grid gap-2 text-sm font-medium">
@@ -109,8 +119,12 @@ export function WelcomeSettingsForm({
       </label>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-medium">
-          自動指派身分組 ID
-          <Input value={autoRoleId} onChange={(event) => setAutoRoleId(event.target.value)} />
+          自動指派身分組
+          <DiscordRoleSelect
+            value={autoRoleId}
+            onValueChange={setAutoRoleId}
+            assignableOnly
+          />
         </label>
         <label className="grid gap-2 text-sm font-medium">
           嵌入訊息顏色

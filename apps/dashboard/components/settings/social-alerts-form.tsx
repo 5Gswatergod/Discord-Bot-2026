@@ -11,6 +11,7 @@ import {
   type SocialAlertInput
 } from "@guildforge/shared";
 
+import { DiscordChannelSelect } from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -131,10 +132,11 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              頻道 ID
-              <Input
+              通知頻道
+              <DiscordChannelSelect
                 value={alert.channelId}
-                onChange={(event) => updateAlert(index, { channelId: event.target.value })}
+                allowEmpty={false}
+                onValueChange={(channelId) => updateAlert(index, { channelId })}
               />
             </label>
           </div>

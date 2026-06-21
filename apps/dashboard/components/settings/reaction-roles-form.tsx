@@ -6,6 +6,10 @@ import { useState, useTransition } from "react";
 
 import type { ReactionRolePanelInput } from "@guildforge/shared";
 
+import {
+  DiscordChannelSelect,
+  DiscordRoleSelect
+} from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,13 +89,14 @@ export function ReactionRolesForm({ guildId, panels }: ReactionRolesFormProps) {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="grid gap-2 text-sm font-medium">
-              頻道 ID
-              <Input
+              發布頻道
+              <DiscordChannelSelect
                 value={panel.channelId}
-                onChange={(event) =>
+                allowEmpty={false}
+                onValueChange={(channelId) =>
                   setLocalPanels((current) =>
                     current.map((item, index) =>
-                      index === panelIndex ? { ...item, channelId: event.target.value } : item
+                      index === panelIndex ? { ...item, channelId } : item
                     )
                   )
                 }
@@ -238,10 +243,11 @@ export function ReactionRolesForm({ guildId, panels }: ReactionRolesFormProps) {
                   <option value="BUTTON">按鈕</option>
                   <option value="REACTION">表情反應</option>
                 </select>
-                <Input
-                  placeholder="身分組 ID"
+                <DiscordRoleSelect
                   value={option.roleId}
-                  onChange={(event) =>
+                  allowEmpty={false}
+                  assignableOnly
+                  onValueChange={(roleId) =>
                     setLocalPanels((current) =>
                       current.map((item, index) =>
                         index === panelIndex
@@ -249,7 +255,7 @@ export function ReactionRolesForm({ guildId, panels }: ReactionRolesFormProps) {
                               ...item,
                               options: item.options.map((currentOption, currentIndex) =>
                                 currentIndex === optionIndex
-                                  ? { ...currentOption, roleId: event.target.value }
+                                  ? { ...currentOption, roleId }
                                   : currentOption
                               )
                             }

@@ -6,6 +6,10 @@ import { useState, useTransition } from "react";
 
 import type { GiveawayInput } from "@guildforge/shared";
 
+import {
+  DiscordChannelSelect,
+  DiscordRoleSelect
+} from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -76,8 +80,18 @@ export function GiveawaysForm({ guildId, giveaways }: GiveawaysFormProps) {
               <Input value={giveaway.prize} onChange={(event) => setLocalGiveaways((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, prize: event.target.value } : item))} />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              頻道 ID
-              <Input value={giveaway.channelId} onChange={(event) => setLocalGiveaways((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, channelId: event.target.value } : item))} />
+              發布頻道
+              <DiscordChannelSelect
+                value={giveaway.channelId}
+                allowEmpty={false}
+                onValueChange={(channelId) =>
+                  setLocalGiveaways((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, channelId } : item
+                    )
+                  )
+                }
+              />
             </label>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
@@ -86,8 +100,19 @@ export function GiveawaysForm({ guildId, giveaways }: GiveawaysFormProps) {
               <Input type="number" min={1} max={25} value={giveaway.winnerCount} onChange={(event) => setLocalGiveaways((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, winnerCount: Number(event.target.value) } : item))} />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              必要身分組 ID
-              <Input value={giveaway.requiredRoleId ?? ""} onChange={(event) => setLocalGiveaways((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, requiredRoleId: event.target.value || null } : item))} />
+              必要身分組
+              <DiscordRoleSelect
+                value={giveaway.requiredRoleId ?? ""}
+                onValueChange={(requiredRoleId) =>
+                  setLocalGiveaways((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index
+                        ? { ...item, requiredRoleId: requiredRoleId || null }
+                        : item
+                    )
+                  )
+                }
+              />
             </label>
             <label className="grid gap-2 text-sm font-medium">
               結束時間

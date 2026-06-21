@@ -6,6 +6,11 @@ import { useState, useTransition } from "react";
 
 import type { ModerationSettings } from "@guildforge/shared";
 
+import {
+  DiscordChannelSelect,
+  DiscordRoleMultiSelect,
+  DiscordRoleSelect
+} from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -14,17 +19,10 @@ type ModerationSettingsFormProps = {
   settings: ModerationSettings;
 };
 
-function splitIds(value: string) {
-  return value
-    .split(/[,\s]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 export function ModerationSettingsForm({ guildId, settings }: ModerationSettingsFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [moderatorRoleIds, setModeratorRoleIds] = useState(settings.moderatorRoleIds.join(", "));
+  const [moderatorRoleIds, setModeratorRoleIds] = useState(settings.moderatorRoleIds);
   const [logChannelId, setLogChannelId] = useState(settings.logChannelId ?? "");
   const [muteRoleId, setMuteRoleId] = useState(settings.muteRoleId ?? "");
   const [defaultTimeoutSeconds, setDefaultTimeoutSeconds] = useState(
@@ -42,7 +40,7 @@ export function ModerationSettingsForm({ guildId, settings }: ModerationSettings
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        moderatorRoleIds: splitIds(moderatorRoleIds),
+        moderatorRoleIds,
         logChannelId: logChannelId || null,
         muteRoleId: muteRoleId || null,
         defaultTimeoutSeconds: Number(defaultTimeoutSeconds)
@@ -60,18 +58,26 @@ export function ModerationSettingsForm({ guildId, settings }: ModerationSettings
 
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
-      <label className="grid gap-2 text-sm font-medium">
-        管理員身分組 ID
-        <Input value={moderatorRoleIds} onChange={(event) => setModeratorRoleIds(event.target.value)} />
-      </label>
+      <div className="grid gap-2 text-sm font-medium">
+        <p>管理員身分組</p>
+        <DiscordRoleMultiSelect
+          ariaLabel="管理員身分組"
+          values={moderatorRoleIds}
+          onValuesChange={setModeratorRoleIds}
+        />
+      </div>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-medium">
-          紀錄頻道 ID
-          <Input value={logChannelId} onChange={(event) => setLogChannelId(event.target.value)} />
+          紀錄頻道
+          <DiscordChannelSelect value={logChannelId} onValueChange={setLogChannelId} />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          靜音身分組 ID
-          <Input value={muteRoleId} onChange={(event) => setMuteRoleId(event.target.value)} />
+          靜音身分組
+          <DiscordRoleSelect
+            value={muteRoleId}
+            onValueChange={setMuteRoleId}
+            assignableOnly
+          />
         </label>
       </div>
       <label className="grid gap-2 text-sm font-medium">

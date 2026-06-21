@@ -7,8 +7,8 @@ import { useState, useTransition } from "react";
 import type { GuildLogEvent } from "@guildforge/shared";
 import { logEventLabels } from "@guildforge/shared";
 
+import { DiscordChannelSelect } from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 type LoggingSettingsFormProps = {
   guildId: string;
@@ -70,10 +70,9 @@ export function LoggingSettingsForm({ guildId, configs }: LoggingSettingsFormPro
             />
             {logEventLabels[config.event]}
           </label>
-          <Input
+          <DiscordChannelSelect
             value={config.channelId ?? ""}
-            onChange={(event) => updateConfig(config.event, { channelId: event.target.value })}
-            placeholder="頻道 ID"
+            onValueChange={(channelId) => updateConfig(config.event, { channelId })}
           />
         </div>
       ))}

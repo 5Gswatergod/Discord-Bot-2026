@@ -12,6 +12,10 @@ import {
   type AutoModTriggerKey
 } from "@guildforge/shared";
 
+import {
+  DiscordChannelMultiSelect,
+  DiscordRoleMultiSelect
+} from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -19,17 +23,6 @@ type AutoModSettingsFormProps = {
   guildId: string;
   rules: AutoModRuleInput[];
 };
-
-function splitIds(value: string) {
-  return value
-    .split(/[,\s]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function joinIds(values: string[]) {
-  return values.join(", ");
-}
 
 export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps) {
   const router = useRouter();
@@ -216,24 +209,26 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
                 }
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium">
-              忽略的頻道
-              <Input
-                value={joinIds(rule.ignoredChannelIds)}
-                onChange={(event) =>
-                  updateRule(rule.trigger, { ignoredChannelIds: splitIds(event.target.value) })
+            <div className="grid gap-2 text-sm font-medium">
+              <p>忽略的頻道</p>
+              <DiscordChannelMultiSelect
+                ariaLabel={`${autoModTriggerLabels[rule.trigger]}忽略的頻道`}
+                values={rule.ignoredChannelIds}
+                onValuesChange={(ignoredChannelIds) =>
+                  updateRule(rule.trigger, { ignoredChannelIds })
                 }
               />
-            </label>
-            <label className="grid gap-2 text-sm font-medium">
-              忽略的身分組
-              <Input
-                value={joinIds(rule.ignoredRoleIds)}
-                onChange={(event) =>
-                  updateRule(rule.trigger, { ignoredRoleIds: splitIds(event.target.value) })
+            </div>
+            <div className="grid gap-2 text-sm font-medium">
+              <p>忽略的身分組</p>
+              <DiscordRoleMultiSelect
+                ariaLabel={`${autoModTriggerLabels[rule.trigger]}忽略的身分組`}
+                values={rule.ignoredRoleIds}
+                onValuesChange={(ignoredRoleIds) =>
+                  updateRule(rule.trigger, { ignoredRoleIds })
                 }
               />
-            </label>
+            </div>
           </div>
         </div>
       ))}

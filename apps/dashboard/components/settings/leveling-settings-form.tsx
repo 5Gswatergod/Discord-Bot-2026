@@ -6,6 +6,11 @@ import { useState, useTransition } from "react";
 
 import type { LevelingSettings, LevelingUpdate } from "@guildforge/shared";
 
+import {
+  DiscordChannelMultiSelect,
+  DiscordChannelSelect,
+  DiscordRoleSelect
+} from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,13 +21,6 @@ type LevelingSettingsFormProps = {
   rewards: LevelingUpdate["rewards"];
 };
 
-function splitIds(value: string) {
-  return value
-    .split(/[,\s]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSettingsFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -32,7 +30,7 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
   const [baseXp, setBaseXp] = useState(String(settings.baseXp));
   const [levelUpChannelId, setLevelUpChannelId] = useState(settings.levelUpChannelId ?? "");
   const [levelUpMessage, setLevelUpMessage] = useState(settings.levelUpMessage);
-  const [ignoredChannelIds, setIgnoredChannelIds] = useState(settings.ignoredChannelIds.join(", "));
+  const [ignoredChannelIds, setIgnoredChannelIds] = useState(settings.ignoredChannelIds);
   const [localRewards, setLocalRewards] = useState(rewards);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -52,7 +50,7 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
         baseXp: Number(baseXp),
         levelUpChannelId: levelUpChannelId || null,
         levelUpMessage,
-        ignoredChannelIds: splitIds(ignoredChannelIds),
+        ignoredChannelIds,
         rewards: localRewards
       })
     });
@@ -114,10 +112,10 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
         </label>
       </div>
       <label className="grid gap-2 text-sm font-medium">
-        升級通知頻道 ID
-        <Input
+        升級通知頻道
+        <DiscordChannelSelect
           value={levelUpChannelId}
-          onChange={(event) => setLevelUpChannelId(event.target.value)}
+          onValueChange={setLevelUpChannelId}
         />
       </label>
       <label className="grid gap-2 text-sm font-medium">
@@ -127,13 +125,14 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
           onChange={(event) => setLevelUpMessage(event.target.value)}
         />
       </label>
-      <label className="grid gap-2 text-sm font-medium">
-        忽略的頻道 ID
-        <Input
-          value={ignoredChannelIds}
-          onChange={(event) => setIgnoredChannelIds(event.target.value)}
+      <div className="grid gap-2 text-sm font-medium">
+        <p>忽略的頻道</p>
+        <DiscordChannelMultiSelect
+          ariaLabel="等級系統忽略的頻道"
+          values={ignoredChannelIds}
+          onValuesChange={setIgnoredChannelIds}
         />
-      </label>
+      </div>
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-medium">身分組獎勵</p>
@@ -170,16 +169,18 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              身分組 ID
-              <Input
+              獎勵身分組
+              <DiscordRoleSelect
                 value={reward.roleId}
-                onChange={(event) =>
+                onValueChange={(roleId) =>
                   setLocalRewards((current) =>
                     current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, roleId: event.target.value } : item
+                      itemIndex === index ? { ...item, roleId } : item
                     )
                   )
                 }
+                allowEmpty={false}
+                assignableOnly
               />
             </label>
             <label className="flex items-center gap-2 pb-2 text-sm font-medium">

@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import type { PollInput } from "@guildforge/shared";
 
+import { DiscordChannelSelect } from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,13 +96,14 @@ export function PollsForm({ guildId, polls }: PollsFormProps) {
           </label>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="grid gap-2 text-sm font-medium">
-              頻道 ID
-              <Input
+              發布頻道
+              <DiscordChannelSelect
                 value={poll.channelId}
-                onChange={(event) =>
+                allowEmpty={false}
+                onValueChange={(channelId) =>
                   setLocalPolls((current) =>
                     current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, channelId: event.target.value } : item
+                      itemIndex === index ? { ...item, channelId } : item
                     )
                   )
                 }

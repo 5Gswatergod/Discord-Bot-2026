@@ -21,6 +21,8 @@ import Link from "next/link";
 
 import type { ManageableGuild } from "@/lib/discord";
 import { SignOutButton } from "@/components/auth-button";
+import { DiscordResourcesProvider } from "@/components/discord-resource-picker";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 
 type GuildDashboardShellProps = {
@@ -202,7 +204,7 @@ export function GuildDashboardShell({
               </div>
             </section>
 
-            {children}
+            <DiscordResourcesProvider guildId={guild.id}>{children}</DiscordResourcesProvider>
           </div>
         </main>
       </div>

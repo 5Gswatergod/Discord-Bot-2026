@@ -6,6 +6,10 @@ import { useState, useTransition } from "react";
 
 import type { EconomySettings } from "@guildforge/shared";
 
+import {
+  DiscordChannelMultiSelect,
+  DiscordRoleMultiSelect
+} from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -14,21 +18,12 @@ type EconomySettingsFormProps = {
   settings: EconomySettings;
 };
 
-function splitIds(value: string) {
-  return value
-    .split(/[,\s]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 export function EconomySettingsForm({ guildId, settings }: EconomySettingsFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState(settings);
-  const [ignoredChannels, setIgnoredChannels] = useState(
-    settings.messageIgnoredChannelIds.join(", ")
-  );
-  const [ignoredRoles, setIgnoredRoles] = useState(settings.messageIgnoredRoleIds.join(", "));
+  const [ignoredChannels, setIgnoredChannels] = useState(settings.messageIgnoredChannelIds);
+  const [ignoredRoles, setIgnoredRoles] = useState(settings.messageIgnoredRoleIds);
   const [message, setMessage] = useState<string | null>(null);
 
   function update<K extends keyof EconomySettings>(key: K, value: EconomySettings[K]) {
@@ -49,8 +44,8 @@ export function EconomySettingsForm({ guildId, settings }: EconomySettingsFormPr
       },
       body: JSON.stringify({
         ...form,
-        messageIgnoredChannelIds: splitIds(ignoredChannels),
-        messageIgnoredRoleIds: splitIds(ignoredRoles)
+        messageIgnoredChannelIds: ignoredChannels,
+        messageIgnoredRoleIds: ignoredRoles
       })
     });
 
@@ -125,17 +120,22 @@ export function EconomySettingsForm({ guildId, settings }: EconomySettingsFormPr
           </label>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-sm font-medium">
-            忽略的頻道 ID
-            <Input
-              value={ignoredChannels}
-              onChange={(event) => setIgnoredChannels(event.target.value)}
+          <div className="grid gap-2 text-sm font-medium">
+            <p>忽略的頻道</p>
+            <DiscordChannelMultiSelect
+              ariaLabel="聊天獎勵忽略的頻道"
+              values={ignoredChannels}
+              onValuesChange={setIgnoredChannels}
             />
-          </label>
-          <label className="grid gap-2 text-sm font-medium">
-            忽略的身分組 ID
-            <Input value={ignoredRoles} onChange={(event) => setIgnoredRoles(event.target.value)} />
-          </label>
+          </div>
+          <div className="grid gap-2 text-sm font-medium">
+            <p>忽略的身分組</p>
+            <DiscordRoleMultiSelect
+              ariaLabel="聊天獎勵忽略的身分組"
+              values={ignoredRoles}
+              onValuesChange={setIgnoredRoles}
+            />
+          </div>
         </div>
       </fieldset>
 

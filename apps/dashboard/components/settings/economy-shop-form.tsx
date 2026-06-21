@@ -12,6 +12,7 @@ import {
   type EconomyShopItemInput
 } from "@guildforge/shared";
 
+import { DiscordRoleSelect } from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -205,11 +206,13 @@ export function EconomyShopForm({ guildId, items }: EconomyShopFormProps) {
               />
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              身分組 ID
-              <Input
+              商品身分組
+              <DiscordRoleSelect
                 disabled={item.type !== "ROLE"}
                 value={item.roleId ?? ""}
-                onChange={(event) => updateItem(index, { roleId: event.target.value || null })}
+                onValueChange={(roleId) => updateItem(index, { roleId: roleId || null })}
+                allowEmpty={item.type !== "ROLE"}
+                assignableOnly
               />
             </label>
           </div>

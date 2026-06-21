@@ -6,6 +6,10 @@ import { useState, useTransition } from "react";
 
 import type { CustomCommandInput } from "@guildforge/shared";
 
+import {
+  DiscordChannelMultiSelect,
+  DiscordRoleMultiSelect
+} from "@/components/discord-resource-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,13 +19,6 @@ type CustomCommandsFormProps = {
   commandPrefix: string;
   commands: CustomCommandInput[];
 };
-
-function splitIds(value: string) {
-  return value
-    .split(/[,\s]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
 
 function blankCommand(): CustomCommandInput {
   return {
@@ -149,24 +146,24 @@ export function CustomCommandsForm({ guildId, commandPrefix, commands }: CustomC
             />
           </label>
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="grid gap-2 text-sm font-medium">
-              允許的身分組 ID
-              <Input
-                value={command.allowedRoleIds.join(", ")}
-                onChange={(event) =>
-                  updateCommand(index, { allowedRoleIds: splitIds(event.target.value) })
+            <div className="grid gap-2 text-sm font-medium">
+              <p>允許的身分組</p>
+              <DiscordRoleMultiSelect
+                ariaLabel={`${command.name || "自訂指令"}允許的身分組`}
+                values={command.allowedRoleIds}
+                onValuesChange={(allowedRoleIds) => updateCommand(index, { allowedRoleIds })}
+              />
+            </div>
+            <div className="grid gap-2 text-sm font-medium">
+              <p>允許的頻道</p>
+              <DiscordChannelMultiSelect
+                ariaLabel={`${command.name || "自訂指令"}允許的頻道`}
+                values={command.allowedChannelIds}
+                onValuesChange={(allowedChannelIds) =>
+                  updateCommand(index, { allowedChannelIds })
                 }
               />
-            </label>
-            <label className="grid gap-2 text-sm font-medium">
-              允許的頻道 ID
-              <Input
-                value={command.allowedChannelIds.join(", ")}
-                onChange={(event) =>
-                  updateCommand(index, { allowedChannelIds: splitIds(event.target.value) })
-                }
-              />
-            </label>
+            </div>
           </div>
         </div>
       ))}
