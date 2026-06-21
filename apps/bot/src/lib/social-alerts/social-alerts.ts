@@ -36,14 +36,12 @@ function decodeXml(value: string) {
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, "\"")
+    .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) =>
       String.fromCodePoint(Number.parseInt(hex, 16))
     )
-    .replace(/&#(\d+);/g, (_, code: string) =>
-      String.fromCodePoint(Number.parseInt(code, 10))
-    )
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 10)))
     .trim();
 }
 
@@ -53,7 +51,9 @@ function escapeRegExp(value: string) {
 
 function readTag(block: string, tag: string) {
   const escapedTag = escapeRegExp(tag);
-  const match = block.match(new RegExp(`<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`, "i"));
+  const match = block.match(
+    new RegExp(`<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`, "i")
+  );
 
   return match ? decodeXml(match[1]) : null;
 }
@@ -123,7 +123,7 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}) {
       ...init,
       signal: controller.signal,
       headers: {
-        "User-Agent": "GuildForge/0.1 Social Alerts",
+        "User-Agent": "Hydrava/0.1 Social Alerts",
         ...init.headers
       }
     });

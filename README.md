@@ -1,6 +1,6 @@
-# GuildForge
+# Hydrava
 
-GuildForge is a self-hosted, modular Discord community management system. It is inspired by the broad category of Discord administration bots, but it uses original naming, structure, UI, and code.
+Hydrava is a self-hosted, modular Discord community management system. It is inspired by the broad category of Discord administration bots, but it uses original naming, structure, UI, and code.
 
 This repository currently implements Phases 1 through 5 from `Task.md`:
 
@@ -210,19 +210,22 @@ Inside Compose, bot and dashboard use `CONTAINER_DATABASE_URL` and `CONTAINER_RE
 The recommended no-monthly-cost deployment uses an Oracle Cloud Always Free Compute VM:
 
 - Traditional Chinese guide: [`ORACLE_CLOUD_DEPLOYMENT.md`](./ORACLE_CLOUD_DEPLOYMENT.md)
+- Fast GHCR deployment guide: [`PRODUCTION_DEPLOYMENT.md`](./PRODUCTION_DEPLOYMENT.md)
 - Production Dockerfile: [`Dockerfile`](./Dockerfile)
 - Production Compose stack: [`docker-compose.oracle.yml`](./docker-compose.oracle.yml)
 - Automatic HTTPS proxy: [`Caddyfile`](./Caddyfile)
 
 The Oracle stack runs Dashboard, Bot, PostgreSQL, Redis, and Caddy on one VM. PostgreSQL and Redis remain private inside the Docker network, while Caddy exposes HTTPS on ports 80 and 443.
 
-Basic production commands:
+Production images are built on GitHub-hosted runners and deployed through the manually approved
+`Deploy Production` workflow. The VM only pulls immutable images, applies the Prisma schema, and
+restarts Dashboard and Bot; it does not compile the application.
+
+Emergency local builds on a low-memory VM must run sequentially:
 
 ```bash
-docker compose -f docker-compose.oracle.yml build
-docker compose -f docker-compose.oracle.yml up -d postgres redis
-docker compose -f docker-compose.oracle.yml run --rm dashboard corepack pnpm db:push
-docker compose -f docker-compose.oracle.yml up -d
+docker compose -f docker-compose.oracle.yml build bot
+docker compose -f docker-compose.oracle.yml build dashboard
 ```
 
 ## Verification

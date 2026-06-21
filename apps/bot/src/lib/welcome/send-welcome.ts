@@ -86,7 +86,7 @@ export async function handleWelcomeMemberAdd(member: GuildMember, context: Comma
   }
 
   if (config.autoRoleId) {
-    await member.roles.add(config.autoRoleId, "GuildForge 歡迎模組自動身分組").catch((error) => {
+    await member.roles.add(config.autoRoleId, "Hydrava 歡迎模組自動身分組").catch((error) => {
       context.logger.warn("Failed to assign welcome auto role", {
         guildId: member.guild.id,
         userId: member.id,
