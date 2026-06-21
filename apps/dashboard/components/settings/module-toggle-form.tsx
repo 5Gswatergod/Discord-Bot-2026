@@ -88,7 +88,7 @@ export function ModuleToggleForm({ guildId, modules }: ModuleToggleFormProps) {
           />
         ))}
       </div>
-      {message ? <p className="text-sm text-red-600">{message}</p> : null}
+      {message ? <p className="text-sm text-red-700 dark:text-red-300">{message}</p> : null}
       <p className="text-xs text-muted-foreground">變更會立即自動儲存並套用至機器人。</p>
     </div>
   );
