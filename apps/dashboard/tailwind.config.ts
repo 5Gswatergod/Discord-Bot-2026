@@ -25,7 +25,7 @@ const config: Config = {
         sm: "4px"
       },
       boxShadow: {
-        panel: "0 16px 48px rgba(3, 7, 18, 0.18)"
+        panel: "var(--shadow-panel)"
       }
     }
   },

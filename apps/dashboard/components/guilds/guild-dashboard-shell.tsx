@@ -106,7 +106,8 @@ export function GuildDashboardShell({
                 aria-hidden="true"
               />
             </Link>
-            <div className="shrink-0">
+            <div className="flex shrink-0 items-center gap-2">
+              <ThemeToggle />
               <SignOutButton />
             </div>
           </div>
@@ -172,7 +173,7 @@ export function GuildDashboardShell({
 
             <section
               id="overview"
-              className="scroll-mt-28 overflow-hidden rounded-2xl border border-primary/20 bg-[radial-gradient(circle_at_top_right,rgba(45,212,191,0.18),transparent_34%),linear-gradient(135deg,rgba(59,130,246,0.12),rgba(17,24,39,0.25))] p-6 sm:p-8"
+              className="dashboard-hero scroll-mt-28 overflow-hidden rounded-2xl border border-primary/20 p-6 sm:p-8"
             >
               <div className="flex flex-col justify-between gap-6 xl:flex-row xl:items-center">
                 <div className="flex min-w-0 items-center gap-4">
@@ -222,7 +223,7 @@ function Metric({
   value: string;
 }) {
   return (
-    <div className="min-w-20 rounded-xl border border-white/10 bg-black/15 px-3 py-3 text-center backdrop-blur sm:min-w-28 sm:px-4">
+    <div className="dashboard-hero-metric min-w-20 rounded-xl border px-3 py-3 text-center backdrop-blur sm:min-w-28 sm:px-4">
       <Icon className="mx-auto text-primary" size={17} aria-hidden="true" />
       <p className="mt-2 text-lg font-bold sm:text-xl">{value}</p>
       <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-xs">{label}</p>
