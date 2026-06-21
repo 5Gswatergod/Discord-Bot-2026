@@ -25,6 +25,10 @@ import { handleReactionRoleReaction } from "./lib/reaction-roles/reaction-roles"
 import { logger } from "./lib/logger";
 import { createRedisClient } from "./lib/redis";
 import { checkSocialAlerts } from "./lib/social-alerts/social-alerts";
+import { syncTicketPanels } from "./lib/tickets/tickets";
+import { syncEmbedMessages } from "./lib/embed-messages/embed-messages";
+import { checkDueReminders } from "./lib/reminders/reminders";
+import { refreshGuildInviteSnapshot } from "./lib/invite-tracking/invite-tracking";
 
 async function main() {
   const client = createBotClient();
@@ -124,12 +128,41 @@ async function main() {
     void handleVoiceStateUpdate(oldState, newState, context);
   });
 
+  client.on(Events.InviteCreate, (invite) => {
+    const guild = invite.guild ? context.client.guilds.cache.get(invite.guild.id) : null;
+
+    if (guild) {
+      void refreshGuildInviteSnapshot(guild, context);
+    }
+  });
+
+  client.on(Events.InviteDelete, (invite) => {
+    const guild = invite.guild ? context.client.guilds.cache.get(invite.guild.id) : null;
+
+    if (guild) {
+      void refreshGuildInviteSnapshot(guild, context);
+    }
+  });
+
   const giveawayInterval = setInterval(() => {
     void checkExpiredGiveaways(context);
   }, 60_000);
   const socialAlertInterval = setInterval(() => {
     void checkSocialAlerts(context);
   }, 60_000);
+  const ticketPanelInterval = setInterval(() => {
+    void syncTicketPanels(context);
+  }, 60_000);
+  const embedMessageInterval = setInterval(() => {
+    void syncEmbedMessages(context);
+  }, 30_000);
+  const reminderInterval = setInterval(() => {
+    void checkDueReminders(context);
+  }, 30_000);
+
+  void syncTicketPanels(context);
+  void syncEmbedMessages(context);
+  void checkDueReminders(context);
 
   const shutdown = async (signal: string) => {
     logger.info("Shutting down bot", {
@@ -139,6 +172,9 @@ async function main() {
     client.destroy();
     clearInterval(giveawayInterval);
     clearInterval(socialAlertInterval);
+    clearInterval(ticketPanelInterval);
+    clearInterval(embedMessageInterval);
+    clearInterval(reminderInterval);
     redis?.disconnect();
     await prisma.$disconnect();
     process.exit(0);

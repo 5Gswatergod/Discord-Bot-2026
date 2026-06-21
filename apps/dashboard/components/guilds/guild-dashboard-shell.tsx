@@ -2,18 +2,22 @@ import {
   Activity,
   BellRing,
   Bot,
+  CalendarClock,
   ChevronDown,
   CircleDollarSign,
   Command,
+  FileText,
   Gift,
   Hand,
   LayoutDashboard,
   ListChecks,
+  MailPlus,
   MessagesSquare,
   ScrollText,
   Settings2,
   ShieldCheck,
   Sparkles,
+  TicketCheck,
   Users
 } from "lucide-react";
 import Image from "next/image";
@@ -45,7 +49,9 @@ const navigationGroups = [
     items: [
       { href: "#moderation", label: "管理功能", icon: ShieldCheck },
       { href: "#automod", label: "自動管理", icon: Sparkles },
-      { href: "#logging", label: "伺服器紀錄", icon: ScrollText }
+      { href: "#logging", label: "伺服器紀錄", icon: ScrollText },
+      { href: "#tickets", label: "客服單", icon: TicketCheck },
+      { href: "#invite-tracking", label: "邀請追蹤", icon: MailPlus }
     ]
   },
   {
@@ -62,7 +68,9 @@ const navigationGroups = [
     items: [
       { href: "#economy", label: "貨幣與商店", icon: CircleDollarSign },
       { href: "#giveaways", label: "抽獎與投票", icon: Gift },
-      { href: "#social-alerts", label: "社群通知", icon: BellRing }
+      { href: "#social-alerts", label: "社群通知", icon: BellRing },
+      { href: "#embed-messages", label: "嵌入訊息", icon: FileText },
+      { href: "#reminders", label: "提醒事項", icon: CalendarClock }
     ]
   }
 ] as const;

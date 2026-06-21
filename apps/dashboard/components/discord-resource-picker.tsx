@@ -1,15 +1,7 @@
 "use client";
 
 import { Check, ChevronsUpDown, Search, X } from "lucide-react";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import type {
@@ -192,6 +184,41 @@ export function DiscordChannelSelect({
   );
 }
 
+export function DiscordCategorySelect({
+  value,
+  onValueChange,
+  allowEmpty = true,
+  disabled,
+  className
+}: SinglePickerProps) {
+  const { data, loading } = useDiscordResources();
+  const categories = data?.channels.filter((channel) => channel.type === 4) ?? [];
+  const missingValue = value && !categories.some((channel) => channel.id === value);
+
+  return (
+    <select
+      className={cn(selectClassName, className)}
+      value={value}
+      disabled={disabled || loading || !data}
+      onChange={(event) => onValueChange(event.target.value)}
+    >
+      {allowEmpty ? <option value="">不指定</option> : null}
+      {!allowEmpty && !value && !loading ? (
+        <option value="" disabled>
+          請選擇分類
+        </option>
+      ) : null}
+      {loading ? <option value="">正在載入分類...</option> : null}
+      {missingValue ? <option value={value}>已刪除或無法存取的分類</option> : null}
+      {categories.map((category) => (
+        <option key={category.id} value={category.id}>
+          {category.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export function DiscordRoleSelect({
   value,
   onValueChange,
@@ -331,11 +358,7 @@ function ResourceMultiSelect<T extends { id: string }>({
         onClick={() => setOpen((current) => !current)}
       >
         <span className="truncate text-muted-foreground">
-          {loading
-            ? "正在載入..."
-            : values.length > 0
-              ? `已選擇 ${values.length} 項`
-              : emptyLabel}
+          {loading ? "正在載入..." : values.length > 0 ? `已選擇 ${values.length} 項` : emptyLabel}
         </span>
         <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
@@ -353,7 +376,9 @@ function ResourceMultiSelect<T extends { id: string }>({
                 onClick={() => toggleValue(value)}
                 title="移除"
               >
-                <span className="truncate">{item ? itemLabel(item) : `${missingLabel} ${index + 1}`}</span>
+                <span className="truncate">
+                  {item ? itemLabel(item) : `${missingLabel} ${index + 1}`}
+                </span>
                 <X className="h-3 w-3 shrink-0" aria-hidden="true" />
               </button>
             );
@@ -392,7 +417,9 @@ function ResourceMultiSelect<T extends { id: string }>({
                     <span
                       className={cn(
                         "flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border",
-                        selected ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border"
                       )}
                     >
                       {selected ? <Check className="h-3 w-3" aria-hidden="true" /> : null}

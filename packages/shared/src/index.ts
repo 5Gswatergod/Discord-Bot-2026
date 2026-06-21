@@ -11,7 +11,11 @@ export const moduleKeys = [
   "LOGGING",
   "GIVEAWAYS",
   "POLLS",
-  "SOCIAL_ALERTS"
+  "SOCIAL_ALERTS",
+  "TICKETS",
+  "INVITE_TRACKING",
+  "EMBED_MESSAGES",
+  "REMINDERS"
 ] as const;
 
 export type GuildModuleKey = (typeof moduleKeys)[number];
@@ -27,7 +31,11 @@ export const moduleLabels: Record<GuildModuleKey, string> = {
   LOGGING: "伺服器紀錄",
   GIVEAWAYS: "抽獎",
   POLLS: "投票",
-  SOCIAL_ALERTS: "社群通知"
+  SOCIAL_ALERTS: "社群通知",
+  TICKETS: "客服單",
+  INVITE_TRACKING: "邀請追蹤",
+  EMBED_MESSAGES: "嵌入訊息",
+  REMINDERS: "提醒事項"
 };
 
 export const moduleDescriptions: Record<GuildModuleKey, string> = {
@@ -41,7 +49,11 @@ export const moduleDescriptions: Record<GuildModuleKey, string> = {
   LOGGING: "記錄訊息、成員、身分組、頻道、語音與管理事件。",
   GIVEAWAYS: "使用按鈕參加抽獎，支援身分組限制、重新抽取與得獎公告。",
   POLLS: "使用按鈕投票，支援公開或匿名結果。",
-  SOCIAL_ALERTS: "定時檢查 YouTube、Twitch 與 RSS 並發送通知。"
+  SOCIAL_ALERTS: "定時檢查 YouTube、Twitch 與 RSS 並發送通知。",
+  TICKETS: "建立私人客服頻道，支援客服領取、關閉與處理紀錄。",
+  INVITE_TRACKING: "追蹤成員使用的邀請連結並建立邀請排行榜。",
+  EMBED_MESSAGES: "透過視覺化編輯器發布及同步 Discord 嵌入訊息。",
+  REMINDERS: "在指定時間發送一次性或循環提醒。"
 };
 
 export const discordPermissionBits = {
@@ -543,6 +555,89 @@ export const socialAlertsUpdateSchema = z
   });
 
 export type SocialAlertInput = z.infer<typeof socialAlertInputSchema>;
+
+export const ticketSettingsSchema = z.object({
+  panelChannelId: optionalSnowflakeSchema.default(null),
+  categoryId: optionalSnowflakeSchema.default(null),
+  supportRoleIds: z.array(snowflakeSchema).max(20).default([]),
+  logChannelId: optionalSnowflakeSchema.default(null),
+  panelTitle: z.string().trim().min(1).max(100).default("需要協助嗎？"),
+  panelDescription: z.string().trim().min(1).max(1_000).default("點擊下方按鈕建立私人客服單。"),
+  ticketWelcomeMessage: z
+    .string()
+    .trim()
+    .min(1)
+    .max(1_500)
+    .default("{user}，客服團隊會盡快回覆你。"),
+  maxOpenPerUser: z.coerce.number().int().min(1).max(5).default(1)
+});
+
+export type TicketSettings = z.infer<typeof ticketSettingsSchema>;
+
+export const inviteTrackingSettingsSchema = z.object({
+  announcementChannelId: optionalSnowflakeSchema.default(null),
+  announcementMessage: z
+    .string()
+    .trim()
+    .min(1)
+    .max(1_500)
+    .default("{member} 透過 {inviter} 的邀請加入，目前已邀請 {count} 人。"),
+  trackBots: z.boolean().default(false)
+});
+
+export type InviteTrackingSettings = z.infer<typeof inviteTrackingSettingsSchema>;
+
+const optionalHttpUrlSchema = z
+  .union([z.string().url().max(2_048), z.literal(""), z.null(), z.undefined()])
+  .transform((value) => (value ? value : null));
+
+export const embedMessageInputSchema = z
+  .object({
+    id: z.string().optional(),
+    channelId: snowflakeSchema,
+    content: z.string().max(2_000).optional().nullable(),
+    title: z.string().max(256).optional().nullable(),
+    description: z.string().max(4_096).optional().nullable(),
+    color: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .default("#24b47e"),
+    url: optionalHttpUrlSchema.default(null),
+    imageUrl: optionalHttpUrlSchema.default(null),
+    thumbnailUrl: optionalHttpUrlSchema.default(null),
+    footerText: z.string().max(2_048).optional().nullable(),
+    authorName: z.string().max(256).optional().nullable(),
+    enabled: z.boolean().default(true)
+  })
+  .refine(
+    (message) =>
+      Boolean(message.content?.trim() || message.title?.trim() || message.description?.trim()),
+    {
+      message: "至少需要訊息內容、標題或說明其中一項",
+      path: ["description"]
+    }
+  );
+
+export const embedMessagesUpdateSchema = z.object({
+  messages: z.array(embedMessageInputSchema).max(50)
+});
+
+export type EmbedMessageInput = z.infer<typeof embedMessageInputSchema>;
+
+export const reminderInputSchema = z.object({
+  id: z.string().optional(),
+  channelId: snowflakeSchema,
+  message: z.string().trim().min(1).max(2_000),
+  nextRunAt: z.coerce.date(),
+  intervalSeconds: z.coerce.number().int().min(60).max(31_536_000).optional().nullable(),
+  enabled: z.boolean().default(true)
+});
+
+export const remindersUpdateSchema = z.object({
+  reminders: z.array(reminderInputSchema).max(100)
+});
+
+export type ReminderInput = z.infer<typeof reminderInputSchema>;
 
 export function formatTemplate(template: string, values: Record<string, string | number>) {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => {

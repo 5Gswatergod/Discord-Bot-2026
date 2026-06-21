@@ -20,6 +20,10 @@ This repository currently implements Phases 1 through 5 from `Task.md`:
 - Button-based giveaways with role gates, scheduled expiry, manual end, reroll, and winner announcements
 - Button polls with 2-10 options, public or anonymous results, expiry support, and dashboard management
 - Social alert workers for YouTube RSS feeds, RSS feeds, and Twitch live checks with dashboard-managed templates
+- Private ticket channels with support-role access, claim/close controls, logs, and an auto-synced panel
+- Invite attribution, join announcements, `/invites`, and `/invite-leaderboard`
+- Dashboard-managed Discord embed messages with live previews and automatic message synchronization
+- Persistent one-time and recurring reminders managed from the dashboard or `/reminder`
 - Oracle Cloud production deployment with Docker, PostgreSQL, Redis, Caddy HTTPS, health checks, and persistent volumes
 
 ## Stack
@@ -167,6 +171,14 @@ Current social alert commands:
 - `/social-alert check`
 - `/social-alert test`
 
+Current utility management commands:
+
+- `/ticket close`
+- `/invites`
+- `/invite-leaderboard`
+- `/reminder create`
+- `/reminder cancel`
+
 ## Development
 
 Run both apps:
@@ -253,6 +265,10 @@ The server overview includes:
 - Giveaway settings: prize, channel, winner count, required role, and end time
 - Poll settings: question, channel, visibility, optional end time, and 2-10 options
 - Social Alerts settings: source type, source ID, source URL, channel ID, message template, interval, and enablement
+- Ticket settings: panel channel, category, support roles, log channel, panel copy, and open-ticket limit
+- Invite Tracking settings: announcement channel, message template, bot tracking, and leaderboard
+- Embed Messages editor: channel, content, title, description, colors, media, footer, preview, and enablement
+- Reminder settings: channel, next run time, message, recurring interval, and enablement
 
 Supported template variables:
 

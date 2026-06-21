@@ -60,7 +60,6 @@ export async function getDiscordGuildResources(guildId: string): Promise<Discord
     channels.filter((channel) => channel.type === 4).map((channel) => [channel.id, channel.name])
   );
   const channelResources: DiscordChannelResource[] = channels
-    .filter((channel) => channel.type !== 4)
     .map((channel) => ({
       id: channel.id,
       name: channel.name,
