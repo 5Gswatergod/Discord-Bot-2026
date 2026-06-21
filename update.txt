@@ -1,0 +1,2 @@
+docker compose -f docker-compose.oracle.yml up -d --force-recreate dashboard caddy
+docker compose -f docker-compose.oracle.yml logs -f caddy dashboard
