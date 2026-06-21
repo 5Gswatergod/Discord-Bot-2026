@@ -14,7 +14,7 @@ Next.js、TypeScript 或 Prisma Client 編譯，只負責拉取 image、同步 s
 
 ## 一次性 GitHub 設定
 
-1. Push 本次變更並等待 `CI` workflow 第一次發布兩個 packages。
+1. 合併至 `master` 後，等待 `Publish Production Images` workflow 第一次發布兩個 packages。
 2. 到 GitHub package settings 確認兩個 container packages 都是 **Public**。GitHub
    通常會讓以 `GITHUB_TOKEN` 建立且連結公開 repository 的 package 繼承公開權限；
    若 package 顯示 Private，手動執行 `Package settings > Change visibility > Public`。

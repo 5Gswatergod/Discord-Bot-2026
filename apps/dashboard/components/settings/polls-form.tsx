@@ -67,7 +67,12 @@ export function PollsForm({ guildId, polls }: PollsFormProps) {
     <form className="grid gap-4" onSubmit={onSubmit}>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium">投票</p>
-        <Button type="button" size="sm" variant="outline" onClick={() => setLocalPolls((current) => [...current, blankPoll()])}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setLocalPolls((current) => [...current, blankPoll()])}
+        >
           <Plus size={14} aria-hidden="true" />
           新增
         </Button>
@@ -77,28 +82,92 @@ export function PollsForm({ guildId, polls }: PollsFormProps) {
           <p className="text-sm font-medium">{poll.id ?? "新投票"}</p>
           <label className="grid gap-2 text-sm font-medium">
             問題
-            <Textarea value={poll.question} onChange={(event) => setLocalPolls((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, question: event.target.value } : item))} />
+            <Textarea
+              value={poll.question}
+              onChange={(event) =>
+                setLocalPolls((current) =>
+                  current.map((item, itemIndex) =>
+                    itemIndex === index ? { ...item, question: event.target.value } : item
+                  )
+                )
+              }
+            />
           </label>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="grid gap-2 text-sm font-medium">
               頻道 ID
-              <Input value={poll.channelId} onChange={(event) => setLocalPolls((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, channelId: event.target.value } : item))} />
+              <Input
+                value={poll.channelId}
+                onChange={(event) =>
+                  setLocalPolls((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, channelId: event.target.value } : item
+                    )
+                  )
+                }
+              />
             </label>
             <label className="grid gap-2 text-sm font-medium">
               結果顯示方式
-              <select className="h-10 rounded-md border border-border bg-white px-3 text-sm" value={poll.visibility} onChange={(event) => setLocalPolls((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, visibility: event.target.value as PollInput["visibility"] } : item))}>
+              <select
+                className="h-10 rounded-md border border-border bg-input px-3 text-sm text-foreground"
+                value={poll.visibility}
+                onChange={(event) =>
+                  setLocalPolls((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index
+                        ? { ...item, visibility: event.target.value as PollInput["visibility"] }
+                        : item
+                    )
+                  )
+                }
+              >
                 <option value="PUBLIC">公開</option>
                 <option value="ANONYMOUS">匿名</option>
               </select>
             </label>
             <label className="grid gap-2 text-sm font-medium">
               結束時間
-              <Input type="datetime-local" value={toDatetimeLocal(poll.endsAt)} onChange={(event) => setLocalPolls((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, endsAt: event.target.value ? new Date(event.target.value).toISOString() : null } : item))} />
+              <Input
+                type="datetime-local"
+                value={toDatetimeLocal(poll.endsAt)}
+                onChange={(event) =>
+                  setLocalPolls((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index
+                        ? {
+                            ...item,
+                            endsAt: event.target.value
+                              ? new Date(event.target.value).toISOString()
+                              : null
+                          }
+                        : item
+                    )
+                  )
+                }
+              />
             </label>
           </div>
           <label className="grid gap-2 text-sm font-medium">
             選項
-            <Input value={poll.options.join(" | ")} onChange={(event) => setLocalPolls((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, options: event.target.value.split("|").map((option) => option.trim()).filter(Boolean) } : item))} />
+            <Input
+              value={poll.options.join(" | ")}
+              onChange={(event) =>
+                setLocalPolls((current) =>
+                  current.map((item, itemIndex) =>
+                    itemIndex === index
+                      ? {
+                          ...item,
+                          options: event.target.value
+                            .split("|")
+                            .map((option) => option.trim())
+                            .filter(Boolean)
+                        }
+                      : item
+                  )
+                )
+              }
+            />
           </label>
         </div>
       ))}

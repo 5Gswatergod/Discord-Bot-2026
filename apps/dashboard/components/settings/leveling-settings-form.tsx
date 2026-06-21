@@ -94,7 +94,7 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
         <label className="grid gap-2 text-sm font-medium">
           計算公式
           <select
-            className="h-10 rounded-md border border-border bg-white px-3 text-sm"
+            className="h-10 rounded-md border border-border bg-input px-3 text-sm text-foreground"
             value={formula}
             onChange={(event) => setFormula(event.target.value as typeof formula)}
           >
@@ -115,15 +115,24 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
       </div>
       <label className="grid gap-2 text-sm font-medium">
         升級通知頻道 ID
-        <Input value={levelUpChannelId} onChange={(event) => setLevelUpChannelId(event.target.value)} />
+        <Input
+          value={levelUpChannelId}
+          onChange={(event) => setLevelUpChannelId(event.target.value)}
+        />
       </label>
       <label className="grid gap-2 text-sm font-medium">
         升級訊息
-        <Textarea value={levelUpMessage} onChange={(event) => setLevelUpMessage(event.target.value)} />
+        <Textarea
+          value={levelUpMessage}
+          onChange={(event) => setLevelUpMessage(event.target.value)}
+        />
       </label>
       <label className="grid gap-2 text-sm font-medium">
         忽略的頻道 ID
-        <Input value={ignoredChannelIds} onChange={(event) => setIgnoredChannelIds(event.target.value)} />
+        <Input
+          value={ignoredChannelIds}
+          onChange={(event) => setIgnoredChannelIds(event.target.value)}
+        />
       </label>
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
@@ -132,14 +141,19 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => setLocalRewards((current) => [...current, { level: 1, roleId: "", stackable: true }])}
+            onClick={() =>
+              setLocalRewards((current) => [...current, { level: 1, roleId: "", stackable: true }])
+            }
           >
             <Plus size={14} aria-hidden="true" />
             新增
           </Button>
         </div>
         {localRewards.map((reward, index) => (
-          <div key={`${reward.level}-${reward.roleId}-${index}`} className="grid gap-2 rounded-md border border-border p-3 md:grid-cols-[90px_1fr_auto_auto] md:items-end">
+          <div
+            key={`${reward.level}-${reward.roleId}-${index}`}
+            className="grid gap-2 rounded-md border border-border p-3 md:grid-cols-[90px_1fr_auto_auto] md:items-end"
+          >
             <label className="grid gap-2 text-sm font-medium">
               等級
               <Input
@@ -187,7 +201,9 @@ export function LevelingSettingsForm({ guildId, settings, rewards }: LevelingSet
               type="button"
               variant="ghost"
               size="icon"
-              onClick={() => setLocalRewards((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+              onClick={() =>
+                setLocalRewards((current) => current.filter((_, itemIndex) => itemIndex !== index))
+              }
             >
               <Trash2 size={16} aria-hidden="true" />
             </Button>

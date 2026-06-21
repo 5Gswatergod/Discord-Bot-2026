@@ -9,6 +9,7 @@
   --muted: 225 14% 19%;
   --muted-foreground: 218 12% 65%;
   --border: 225 13% 23%;
+  --input: 225 15% 17%;
   --primary: 171 70% 46%;
   --primary-foreground: 225 24% 9%;
   --accent: 211 86% 61%;
@@ -21,6 +22,7 @@
 }
 
 html {
+  color-scheme: dark;
   scroll-behavior: smooth;
 }
 
@@ -45,6 +47,16 @@ a {
 
 ::selection {
   background: hsl(var(--primary) / 0.28);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: hsl(var(--foreground));
+  box-shadow: 0 0 0 1000px hsl(var(--input)) inset;
+  caret-color: hsl(var(--foreground));
 }
 
 ::-webkit-scrollbar {

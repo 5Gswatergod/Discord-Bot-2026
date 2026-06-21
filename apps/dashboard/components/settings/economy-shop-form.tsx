@@ -116,7 +116,7 @@ export function EconomyShopForm({ guildId, items }: EconomyShopFormProps) {
             <label className="grid gap-2 text-sm font-medium">
               商品類型
               <select
-                className="h-10 rounded-md border border-border bg-white px-3 text-sm"
+                className="h-10 rounded-md border border-border bg-input px-3 text-sm text-foreground"
                 value={item.type}
                 disabled={item.soldCount > 0}
                 onChange={(event) =>
@@ -136,7 +136,7 @@ export function EconomyShopForm({ guildId, items }: EconomyShopFormProps) {
             <label className="grid gap-2 text-sm font-medium">
               狀態
               <select
-                className="h-10 rounded-md border border-border bg-white px-3 text-sm"
+                className="h-10 rounded-md border border-border bg-input px-3 text-sm text-foreground"
                 value={item.status}
                 onChange={(event) =>
                   updateItem(index, {
