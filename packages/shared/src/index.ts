@@ -15,7 +15,12 @@ export const moduleKeys = [
   "TICKETS",
   "INVITE_TRACKING",
   "EMBED_MESSAGES",
-  "REMINDERS"
+  "REMINDERS",
+  "STARBOARD",
+  "ACHIEVEMENTS",
+  "BIRTHDAYS",
+  "SERVER_STATS",
+  "TEMPORARY_VOICE"
 ] as const;
 
 export type GuildModuleKey = (typeof moduleKeys)[number];
@@ -35,7 +40,12 @@ export const moduleLabels: Record<GuildModuleKey, string> = {
   TICKETS: "客服單",
   INVITE_TRACKING: "邀請追蹤",
   EMBED_MESSAGES: "嵌入訊息",
-  REMINDERS: "提醒事項"
+  REMINDERS: "提醒事項",
+  STARBOARD: "熱門訊息牆",
+  ACHIEVEMENTS: "成就與獎勵",
+  BIRTHDAYS: "生日",
+  SERVER_STATS: "統計頻道",
+  TEMPORARY_VOICE: "臨時語音頻道"
 };
 
 export const moduleDescriptions: Record<GuildModuleKey, string> = {
@@ -53,7 +63,12 @@ export const moduleDescriptions: Record<GuildModuleKey, string> = {
   TICKETS: "建立私人客服頻道，支援客服領取、關閉與處理紀錄。",
   INVITE_TRACKING: "追蹤成員使用的邀請連結並建立邀請排行榜。",
   EMBED_MESSAGES: "透過視覺化編輯器發布及同步 Discord 嵌入訊息。",
-  REMINDERS: "在指定時間發送一次性或循環提醒。"
+  REMINDERS: "在指定時間發送一次性或循環提醒。",
+  STARBOARD: "將獲得足夠反應的熱門訊息展示到指定頻道。",
+  ACHIEVEMENTS: "依聊天、等級與邀請進度解鎖成就及身分組獎勵。",
+  BIRTHDAYS: "讓成員登記生日，並在指定頻道自動送上祝福。",
+  SERVER_STATS: "以 Discord 頻道名稱即時顯示成員、身分組與頻道統計。",
+  TEMPORARY_VOICE: "成員加入大廳後自動建立私人臨時語音頻道。"
 };
 
 export const discordPermissionBits = {
@@ -638,6 +653,152 @@ export const remindersUpdateSchema = z.object({
 });
 
 export type ReminderInput = z.infer<typeof reminderInputSchema>;
+
+export const starboardSettingsSchema = z.object({
+  channelId: optionalSnowflakeSchema.default(null),
+  emoji: z.string().trim().min(1).max(64).default("⭐"),
+  threshold: z.coerce.number().int().min(1).max(100).default(3),
+  ignoredChannelIds: z.array(snowflakeSchema).max(100).default([]),
+  allowSelfStar: z.boolean().default(false),
+  removeBelowThreshold: z.boolean().default(true)
+});
+
+export type StarboardSettings = z.infer<typeof starboardSettingsSchema>;
+
+export const achievementTriggers = ["MESSAGE_COUNT", "LEVEL", "INVITE_COUNT"] as const;
+export type AchievementTriggerKey = (typeof achievementTriggers)[number];
+
+export const achievementTriggerLabels: Record<AchievementTriggerKey, string> = {
+  MESSAGE_COUNT: "訊息數量",
+  LEVEL: "等級",
+  INVITE_COUNT: "邀請人數"
+};
+
+export const achievementInputSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(500).optional().nullable(),
+  icon: z.string().trim().max(64).optional().nullable(),
+  trigger: z.enum(achievementTriggers),
+  threshold: z.coerce.number().int().min(1).max(10_000_000),
+  rewardRoleId: optionalSnowflakeSchema.default(null),
+  enabled: z.boolean().default(true)
+});
+
+export const achievementSettingsSchema = z
+  .object({
+    announcementChannelId: optionalSnowflakeSchema.default(null),
+    announcementMessage: z
+      .string()
+      .trim()
+      .min(1)
+      .max(1_500)
+      .default("🎉 {user} 解鎖了成就 **{achievement}**！"),
+    achievements: z.array(achievementInputSchema).max(100).default([])
+  })
+  .superRefine((settings, context) => {
+    const names = new Set<string>();
+
+    settings.achievements.forEach((achievement, index) => {
+      const normalizedName = achievement.name.toLocaleLowerCase();
+
+      if (names.has(normalizedName)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "成就名稱不可重複",
+          path: ["achievements", index, "name"]
+        });
+      }
+
+      names.add(normalizedName);
+    });
+  });
+
+export type AchievementInput = z.infer<typeof achievementInputSchema>;
+export type AchievementSettings = z.infer<typeof achievementSettingsSchema>;
+
+export const birthdaySettingsSchema = z.object({
+  announcementChannelId: optionalSnowflakeSchema.default(null),
+  announcementMessage: z
+    .string()
+    .trim()
+    .min(1)
+    .max(1_500)
+    .default("🎂 今天是 {user} 的生日，祝你生日快樂！"),
+  timeZone: z.string().trim().refine(isValidTimeZone, "時區格式不正確").default("Asia/Taipei"),
+  upcomingDays: z.coerce.number().int().min(1).max(90).default(30)
+});
+
+export type BirthdaySettings = z.infer<typeof birthdaySettingsSchema>;
+
+export const serverStatTypes = [
+  "MEMBER_COUNT",
+  "HUMAN_COUNT",
+  "BOT_COUNT",
+  "ROLE_COUNT",
+  "TEXT_CHANNEL_COUNT",
+  "VOICE_CHANNEL_COUNT"
+] as const;
+
+export type ServerStatTypeKey = (typeof serverStatTypes)[number];
+
+export const serverStatTypeLabels: Record<ServerStatTypeKey, string> = {
+  MEMBER_COUNT: "總成員數",
+  HUMAN_COUNT: "真人成員數",
+  BOT_COUNT: "機器人數",
+  ROLE_COUNT: "身分組數",
+  TEXT_CHANNEL_COUNT: "文字頻道數",
+  VOICE_CHANNEL_COUNT: "語音頻道數"
+};
+
+export const defaultServerStatTemplates: Record<ServerStatTypeKey, string> = {
+  MEMBER_COUNT: "成員：{count}",
+  HUMAN_COUNT: "真人：{count}",
+  BOT_COUNT: "機器人：{count}",
+  ROLE_COUNT: "身分組：{count}",
+  TEXT_CHANNEL_COUNT: "文字頻道：{count}",
+  VOICE_CHANNEL_COUNT: "語音頻道：{count}"
+};
+
+export const serverStatChannelInputSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum(serverStatTypes),
+  template: z.string().trim().min(1).max(100),
+  categoryId: optionalSnowflakeSchema.default(null),
+  enabled: z.boolean().default(true)
+});
+
+export const serverStatsUpdateSchema = z
+  .object({
+    channels: z.array(serverStatChannelInputSchema).max(serverStatTypes.length)
+  })
+  .superRefine((settings, context) => {
+    const types = new Set<ServerStatTypeKey>();
+
+    settings.channels.forEach((channel, index) => {
+      if (types.has(channel.type)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "每種伺服器統計只能設定一次",
+          path: ["channels", index, "type"]
+        });
+      }
+
+      types.add(channel.type);
+    });
+  });
+
+export type ServerStatChannelInput = z.infer<typeof serverStatChannelInputSchema>;
+
+export const temporaryVoiceSettingsSchema = z.object({
+  lobbyChannelId: optionalSnowflakeSchema.default(null),
+  categoryId: optionalSnowflakeSchema.default(null),
+  nameTemplate: z.string().trim().min(1).max(100).default("{username} 的語音房"),
+  userLimit: z.coerce.number().int().min(0).max(99).default(0),
+  bitrate: z.coerce.number().int().min(8_000).max(384_000).default(64_000)
+});
+
+export type TemporaryVoiceSettings = z.infer<typeof temporaryVoiceSettingsSchema>;
 
 export function formatTemplate(template: string, values: Record<string, string | number>) {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => {

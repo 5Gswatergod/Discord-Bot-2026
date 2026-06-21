@@ -4,6 +4,7 @@ import { LogEvent } from "@guildforge/database";
 
 import type { CommandContext } from "../commands/types";
 import { sendGuildLog } from "../lib/logging/send-log";
+import { handleTemporaryVoiceState } from "../lib/temporary-voice/temporary-voice";
 
 export async function handleVoiceStateUpdate(
   oldState: VoiceState,
@@ -13,6 +14,14 @@ export async function handleVoiceStateUpdate(
   if (oldState.channelId === newState.channelId) {
     return;
   }
+
+  await handleTemporaryVoiceState(oldState, newState, context).catch((error) => {
+    context.logger.warn("Failed to process temporary voice state", {
+      guildId: newState.guild.id,
+      userId: newState.id,
+      error
+    });
+  });
 
   if (!oldState.channelId && newState.channelId) {
     const embed = new EmbedBuilder()

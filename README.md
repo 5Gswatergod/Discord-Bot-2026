@@ -24,6 +24,11 @@ This repository currently implements Phases 1 through 5 from `Task.md`:
 - Invite attribution, join announcements, `/invites`, and `/invite-leaderboard`
 - Dashboard-managed Discord embed messages with live previews and automatic message synchronization
 - Persistent one-time and recurring reminders managed from the dashboard or `/reminder`
+- Starboard reactions with configurable thresholds, ignored channels, and automatic cleanup
+- Achievements based on message count, level, or invites, with optional role rewards
+- Member birthdays with timezone-aware announcements and an upcoming birthday command
+- Auto-updating server statistic channels for members, bots, roles, and channel counts
+- Join-to-create temporary voice channels with owner rename and user-limit controls
 - Oracle Cloud production deployment with Docker, PostgreSQL, Redis, Caddy HTTPS, health checks, and persistent volumes
 
 ## Stack
@@ -179,6 +184,16 @@ Current utility management commands:
 - `/reminder create`
 - `/reminder cancel`
 
+Current community engagement commands:
+
+- `/achievements`
+- `/birthday set`
+- `/birthday remove`
+- `/birthday upcoming`
+- `/server-stats`
+- `/voice rename`
+- `/voice limit`
+
 ## Development
 
 Run both apps:
@@ -269,6 +284,11 @@ The server overview includes:
 - Invite Tracking settings: announcement channel, message template, bot tracking, and leaderboard
 - Embed Messages editor: channel, content, title, description, colors, media, footer, preview, and enablement
 - Reminder settings: channel, next run time, message, recurring interval, and enablement
+- Starboard settings: destination channel, emoji, threshold, ignored channels, and cleanup behavior
+- Achievement settings: trigger, threshold, role reward, announcement channel, and message template
+- Birthday settings: announcement channel, message template, timezone, and upcoming-day window
+- Server Stats settings: statistic type, channel name template, category, and enablement
+- Temporary Voice settings: join lobby, category, name template, bitrate, and user limit
 
 Supported template variables:
 

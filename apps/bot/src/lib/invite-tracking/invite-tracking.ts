@@ -36,14 +36,14 @@ export async function trackMemberInvite(member: GuildMember, context: CommandCon
   const { enabled, settings } = await getSettings(context, member.guild.id);
 
   if (!enabled || (member.user.bot && !settings.trackBots)) {
-    return;
+    return null;
   }
 
   const previous = inviteSnapshots.get(member.guild.id) ?? new Map<string, number>();
   const invites = await member.guild.invites.fetch().catch(() => null);
 
   if (!invites) {
-    return;
+    return null;
   }
 
   const usedInvite = invites.find(
@@ -76,7 +76,7 @@ export async function trackMemberInvite(member: GuildMember, context: CommandCon
   });
 
   if (!settings.announcementChannelId) {
-    return;
+    return inviterUserId;
   }
 
   const channel = await member.guild.channels
@@ -84,7 +84,7 @@ export async function trackMemberInvite(member: GuildMember, context: CommandCon
     .catch(() => null);
 
   if (!isSendableGuildTextChannel(channel)) {
-    return;
+    return inviterUserId;
   }
 
   const count = inviterUserId
@@ -108,4 +108,6 @@ export async function trackMemberInvite(member: GuildMember, context: CommandCon
       users: [member.id, ...(inviterUserId ? [inviterUserId] : [])]
     }
   });
+
+  return inviterUserId;
 }

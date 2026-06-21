@@ -4,6 +4,7 @@ import { LogEvent } from "@guildforge/database";
 
 import type { CommandContext } from "../commands/types";
 import { sendGuildLog } from "../lib/logging/send-log";
+import { handleStarboardSourceDelete } from "../lib/starboard/starboard";
 
 export async function handleMessageDelete(
   message: Message<boolean> | PartialMessage,
@@ -12,6 +13,14 @@ export async function handleMessageDelete(
   if (!message.guild || message.author?.bot) {
     return;
   }
+
+  await handleStarboardSourceDelete(message, context).catch((error) => {
+    context.logger.warn("Failed to clean up deleted starboard source", {
+      guildId: message.guild?.id,
+      messageId: message.id,
+      error
+    });
+  });
 
   const content = message.content || "無法取得訊息內容。";
   const embed = new EmbedBuilder()
