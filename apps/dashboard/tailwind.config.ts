@@ -12,6 +12,7 @@ const config: Config = {
         card: "hsl(var(--card))",
         muted: "hsl(var(--muted))",
         "muted-foreground": "hsl(var(--muted-foreground))",
+        input: "hsl(var(--input))",
         primary: "hsl(var(--primary))",
         "primary-foreground": "hsl(var(--primary-foreground))",
         accent: "hsl(var(--accent))",

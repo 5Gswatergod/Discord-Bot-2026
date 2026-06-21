@@ -43,10 +43,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
     );
   }
 
-  function updatePattern(
-    trigger: AutoModTriggerKey,
-    patch: Partial<AutoModRuleInput["pattern"]>
-  ) {
+  function updatePattern(trigger: AutoModTriggerKey, patch: Partial<AutoModRuleInput["pattern"]>) {
     setLocalRules((current) =>
       current.map((rule) =>
         rule.trigger === trigger ? { ...rule, pattern: { ...rule.pattern, ...patch } } : rule
@@ -92,7 +89,7 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
               {autoModTriggerLabels[rule.trigger]}
             </label>
             <select
-              className="h-9 rounded-md border border-border bg-white px-2 text-sm"
+              className="h-9 rounded-md border border-border bg-input px-2 text-sm text-foreground"
               value={rule.punishment}
               onChange={(event) =>
                 updateRule(rule.trigger, {
@@ -212,7 +209,9 @@ export function AutoModSettingsForm({ guildId, rules }: AutoModSettingsFormProps
                 value={rule.punishmentDurationSeconds ?? ""}
                 onChange={(event) =>
                   updateRule(rule.trigger, {
-                    punishmentDurationSeconds: event.target.value ? Number(event.target.value) : null
+                    punishmentDurationSeconds: event.target.value
+                      ? Number(event.target.value)
+                      : null
                   })
                 }
               />

@@ -95,7 +95,9 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
               type="button"
               variant="ghost"
               size="icon"
-              onClick={() => setLocalAlerts((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+              onClick={() =>
+                setLocalAlerts((current) => current.filter((_, itemIndex) => itemIndex !== index))
+              }
             >
               <Trash2 size={16} aria-hidden="true" />
             </Button>
@@ -104,7 +106,7 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
             <label className="grid gap-2 text-sm font-medium">
               類型
               <select
-                className="h-10 rounded-md border border-border bg-white px-3 text-sm"
+                className="h-10 rounded-md border border-border bg-input px-3 text-sm text-foreground"
                 value={alert.type}
                 onChange={(event) => {
                   const type = event.target.value as SocialAlertInput["type"];
@@ -151,7 +153,9 @@ export function SocialAlertsForm({ guildId, alerts }: SocialAlertsFormProps) {
                 min={60}
                 max={86400}
                 value={alert.intervalSeconds}
-                onChange={(event) => updateAlert(index, { intervalSeconds: Number(event.target.value) })}
+                onChange={(event) =>
+                  updateAlert(index, { intervalSeconds: Number(event.target.value) })
+                }
               />
             </label>
           </div>
