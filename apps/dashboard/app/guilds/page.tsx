@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { SignOutButton } from "@/components/auth-button";
 import { GuildCard } from "@/components/guilds/guild-card";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { authOptions } from "@/lib/auth";
 import { getManageableGuilds } from "@/lib/discord";
 
@@ -23,7 +24,10 @@ export default async function GuildSelectorPage() {
             <p className="text-sm font-medium text-primary">Hydrava</p>
             <h1 className="mt-1 text-2xl font-semibold">伺服器</h1>
           </div>
-          <SignOutButton />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <SignOutButton />
+          </div>
         </header>
 
         {guilds.length > 0 ? (

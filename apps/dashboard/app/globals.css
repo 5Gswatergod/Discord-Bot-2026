@@ -3,18 +3,47 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+  --background: 210 25% 98%;
+  --foreground: 222 39% 11%;
+  --card: 0 0% 100%;
+  --muted: 210 20% 93%;
+  --muted-foreground: 217 16% 38%;
+  --border: 214 22% 84%;
+  --input: 0 0% 100%;
+  --primary: 171 76% 28%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 211 82% 42%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 43%;
+  --hero-glow: 171 70% 40% / 0.16;
+  --hero-start: 211 80% 95%;
+  --hero-end: 210 30% 99%;
+  --hero-metric-background: 0 0% 100% / 0.68;
+  --hero-metric-border: 222 30% 15% / 0.1;
+  --shadow-panel: 0 16px 48px rgba(15, 23, 42, 0.1);
+}
+
+.dark {
+  color-scheme: dark;
   --background: 225 18% 11%;
   --foreground: 216 25% 95%;
   --card: 225 17% 14%;
   --muted: 225 14% 19%;
-  --muted-foreground: 218 12% 65%;
+  --muted-foreground: 218 12% 68%;
   --border: 225 13% 23%;
   --input: 225 15% 17%;
   --primary: 171 70% 46%;
   --primary-foreground: 225 24% 9%;
   --accent: 211 86% 61%;
-  --accent-foreground: 0 0% 100%;
+  --accent-foreground: 225 24% 9%;
   --destructive: 0 73% 61%;
+  --hero-glow: 171 70% 46% / 0.18;
+  --hero-start: 211 60% 18% / 0.72;
+  --hero-end: 225 24% 12% / 0.82;
+  --hero-metric-background: 225 24% 6% / 0.32;
+  --hero-metric-border: 0 0% 100% / 0.1;
+  --shadow-panel: 0 16px 48px rgba(3, 7, 18, 0.18);
 }
 
 * {
@@ -22,7 +51,6 @@
 }
 
 html {
-  color-scheme: dark;
   scroll-behavior: smooth;
 }
 
@@ -38,6 +66,9 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
 }
 
 a {
@@ -47,6 +78,25 @@ a {
 
 ::selection {
   background: hsl(var(--primary) / 0.28);
+}
+
+.dashboard-hero {
+  background:
+    radial-gradient(circle at top right, hsl(var(--hero-glow)), transparent 34%),
+    linear-gradient(135deg, hsl(var(--hero-start)), hsl(var(--hero-end)));
+}
+
+.dashboard-hero-metric {
+  border-color: hsl(var(--hero-metric-border));
+  background: hsl(var(--hero-metric-background));
+}
+
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow, transform;
+  transition-duration: 220ms;
+  transition-timing-function: ease;
 }
 
 input:-webkit-autofill,
@@ -72,4 +122,13 @@ select:-webkit-autofill {
   border: 2px solid hsl(var(--background));
   border-radius: 999px;
   background: hsl(var(--muted));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition-duration: 0.01ms !important;
+  }
 }

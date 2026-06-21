@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 import { SignInButton } from "@/components/auth-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { authOptions } from "@/lib/auth";
 
@@ -34,26 +35,32 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     : null;
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-10">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h1 className="text-xl font-semibold leading-7">Hydrava</h1>
-          <CardDescription>集中管理你擁有權限的 Discord 伺服器。</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          {errorMessage ? (
-            <div
-              role="alert"
-              className="rounded-md border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-200"
-            >
-              <p className="font-medium">Discord 登入失敗</p>
-              <p className="mt-1">{errorMessage}</p>
-              <p className="mt-2 font-mono text-xs">{errorCode}</p>
-            </div>
-          ) : null}
-          <SignInButton />
-        </CardContent>
-      </Card>
-    </main>
+    <div className="min-h-screen bg-background">
+      <header className="flex h-16 items-center justify-between border-b border-border px-4 sm:px-6">
+        <p className="text-sm font-bold">Hydrava</p>
+        <ThemeToggle />
+      </header>
+      <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-10">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <h1 className="text-xl font-semibold leading-7">Hydrava</h1>
+            <CardDescription>集中管理你擁有權限的 Discord 伺服器。</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {errorMessage ? (
+              <div
+                role="alert"
+                className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200"
+              >
+                <p className="font-medium">Discord 登入失敗</p>
+                <p className="mt-1">{errorMessage}</p>
+                <p className="mt-2 font-mono text-xs">{errorCode}</p>
+              </div>
+            ) : null}
+            <SignInButton />
+          </CardContent>
+        </Card>
+      </main>
+    </div>
   );
 }
