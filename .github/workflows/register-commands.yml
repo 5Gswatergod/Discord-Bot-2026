@@ -33,15 +33,32 @@ jobs:
 
       - name: Configure SSH
         env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
+          if [[ -z "$DEPLOY_HOST" || -z "$DEPLOY_SSH_KEY" || -z "$DEPLOY_KNOWN_HOSTS" ]]; then
+            echo "::error title=Missing production SSH secret::DEPLOY_HOST, DEPLOY_SSH_KEY, and DEPLOY_KNOWN_HOSTS must all be configured in the production environment."
+            exit 1
+          fi
+
           install -m 700 -d "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/id_deploy"
           chmod 600 "$HOME/.ssh/id_deploy"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
+
+          if ! ssh-keygen -y -f "$HOME/.ssh/id_deploy" >/dev/null; then
+            echo "::error title=Invalid deployment key::DEPLOY_SSH_KEY is not a valid OpenSSH private key."
+            exit 1
+          fi
+
+          if ! ssh-keygen -F "$DEPLOY_HOST" -f "$HOME/.ssh/known_hosts" |
+            grep -q 'ssh-ed25519'; then
+            echo "::error title=Host key does not match DEPLOY_HOST::DEPLOY_KNOWN_HOSTS must contain the ED25519 key for the exact DEPLOY_HOST value. Regenerate it with: ssh-keyscan -T 10 -t ed25519 -H \"$DEPLOY_HOST\""
+            exit 1
+          fi
 
       - name: Register slash commands
         env:

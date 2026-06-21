@@ -19,24 +19,52 @@ Next.js、TypeScript 或 Prisma Client 編譯，只負責拉取 image、同步 s
    通常會讓以 `GITHUB_TOKEN` 建立且連結公開 repository 的 package 繼承公開權限；
    若 package 顯示 Private，手動執行 `Package settings > Change visibility > Public`。
    公開 GHCR container 可以讓 VM 匿名 pull，且改為 Public 後無法再改回 Private。
-3. 建立專用部署 SSH key，不要重用個人登入 key：
+3. 先決定 `DEPLOY_HOST`。建議直接使用 Oracle VM 公開 IP；若使用
+   `ssh.hydrava.cc`，Cloudflare DNS 必須設為 **DNS only**，而且以下每一條指令及
+   GitHub secret 都必須使用完全相同的 IP 或 hostname。
+4. 建立專用部署 SSH key，不要重用個人登入 key：
 
    ```bash
    ssh-keygen -t ed25519 -C guildforge-github-actions -f guildforge-actions
-   ssh-copy-id -i guildforge-actions.pub ubuntu@YOUR_VM_IP
-   ssh-keyscan -H YOUR_VM_IP
+   ssh-copy-id -i guildforge-actions.pub ubuntu@DEPLOY_HOST
    ```
 
-4. 在 repository 的 `Settings > Environments` 建立 `production` environment。
-5. 建議為 `production` 設定 required reviewer，讓每次部署都必須人工批准。
-6. 在 `production` environment 建立以下 secrets：
+5. 從 Oracle Console 或既有可信任的 SSH 連線，在 VM 取得 ED25519 host key
+   fingerprint：
+
+   ```bash
+   sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256
+   ```
+
+6. 在自己的電腦掃描完全相同的 `DEPLOY_HOST`，再核對 fingerprint：
+
+   ```bash
+   ssh-keyscan -T 10 -t ed25519 -H DEPLOY_HOST 2>/dev/null > deploy_known_hosts
+   ssh-keygen -lf deploy_known_hosts -E sha256
+   ```
+
+   兩邊的 SHA256 fingerprint 必須完全相同。不要直接信任未核對的
+   `ssh-keyscan` 結果，否則會失去 strict host verification 的意義。
+7. 在 repository 的 `Settings > Environments` 建立 `production` environment。
+8. 建議為 `production` 設定 required reviewer，讓每次部署都必須人工批准。
+9. 在 `production` environment 建立以下 secrets：
 
    | Secret | 內容 |
    | --- | --- |
-   | `DEPLOY_HOST` | VM IP 或 hostname |
+   | `DEPLOY_HOST` | 上述完全相同的 VM IP 或 DNS-only hostname |
    | `DEPLOY_USER` | `ubuntu` |
    | `DEPLOY_SSH_KEY` | `guildforge-actions` private key 完整內容 |
-   | `DEPLOY_KNOWN_HOSTS` | `ssh-keyscan -H` 產生的完整行 |
+   | `DEPLOY_KNOWN_HOSTS` | `deploy_known_hosts` 的完整 ED25519 行 |
+
+   Windows PowerShell 可用以下方式複製檔案內容：
+
+   ```powershell
+   Get-Content -Raw .\guildforge-actions
+   Get-Content -Raw .\deploy_known_hosts
+   ```
+
+   若 workflow 顯示 `No ED25519 host key is known`，代表
+   `DEPLOY_KNOWN_HOSTS` 不是以目前 `DEPLOY_HOST` 產生，或只複製了其他 key type。
 
 Workflow 使用固定路徑 `/home/ubuntu/Discord-Bot-2026`。VM 上的 repository 必須位於此處、
 保持在 `master`，且 tracked files 不可有未提交修改。Production secrets 繼續只保存在 VM
