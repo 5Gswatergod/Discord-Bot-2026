@@ -2,14 +2,18 @@
 
 import {
   BellRing,
+  CalendarClock,
   Check,
   CircleDollarSign,
   Command,
+  FileText,
   Gift,
   Hand,
+  MailPlus,
   ListChecks,
   MessagesSquare,
   ScrollText,
+  TicketCheck,
   ShieldCheck,
   Sparkles,
   type LucideIcon
@@ -42,7 +46,11 @@ const moduleIcons: Record<GuildModuleKey, LucideIcon> = {
   LOGGING: ScrollText,
   GIVEAWAYS: Gift,
   POLLS: Check,
-  SOCIAL_ALERTS: BellRing
+  SOCIAL_ALERTS: BellRing,
+  TICKETS: TicketCheck,
+  INVITE_TRACKING: MailPlus,
+  EMBED_MESSAGES: FileText,
+  REMINDERS: CalendarClock
 };
 
 export function ModuleToggleForm({ guildId, modules }: ModuleToggleFormProps) {

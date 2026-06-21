@@ -5,9 +5,14 @@ import { commandMap } from "../commands";
 import { handleGiveawayButton } from "../lib/giveaways/giveaways";
 import { handlePollButton } from "../lib/polls/polls";
 import { handleReactionRoleButton } from "../lib/reaction-roles/reaction-roles";
+import { handleTicketButton } from "../lib/tickets/tickets";
 
 export async function handleInteractionCreate(interaction: Interaction, context: CommandContext) {
   if (interaction.isButton()) {
+    if (await handleTicketButton(interaction, context)) {
+      return;
+    }
+
     if (await handleReactionRoleButton(interaction, context)) {
       return;
     }

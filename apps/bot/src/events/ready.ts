@@ -2,6 +2,7 @@ import { ActivityType, type Client } from "discord.js";
 
 import type { CommandContext } from "../commands/types";
 import { ensureGuildDefaults } from "../lib/guild-config";
+import { refreshGuildInviteSnapshot } from "../lib/invite-tracking/invite-tracking";
 
 export async function handleReady(client: Client<true>, context: CommandContext) {
   client.user.setPresence({
@@ -16,6 +17,7 @@ export async function handleReady(client: Client<true>, context: CommandContext)
 
   for (const guild of client.guilds.cache.values()) {
     await ensureGuildDefaults(context.prisma, guild);
+    await refreshGuildInviteSnapshot(guild, context);
   }
 
   context.logger.info("Bot is ready", {

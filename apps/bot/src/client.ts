@@ -7,6 +7,7 @@ export function createBotClient() {
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildMessageReactions,
+      GatewayIntentBits.GuildInvites,
       GatewayIntentBits.GuildModeration,
       GatewayIntentBits.GuildVoiceStates,
       GatewayIntentBits.MessageContent

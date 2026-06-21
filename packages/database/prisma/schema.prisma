@@ -19,6 +19,10 @@ enum ModuleKey {
   GIVEAWAYS
   POLLS
   SOCIAL_ALERTS
+  TICKETS
+  INVITE_TRACKING
+  EMBED_MESSAGES
+  REMINDERS
 }
 
 enum ModerationAction {
@@ -126,6 +130,11 @@ enum EconomyShopItemStatus {
   ARCHIVED
 }
 
+enum TicketStatus {
+  OPEN
+  CLOSED
+}
+
 model User {
   id        String   @id
   username  String
@@ -168,6 +177,10 @@ model Guild {
   economyTransactions EconomyTransaction[]
   economyShopItems    EconomyShopItem[]
   economyInventory    EconomyInventoryItem[]
+  tickets             Ticket[]
+  inviteAttributions  InviteAttribution[]
+  embedMessages       EmbedMessage[]
+  reminders           Reminder[]
   auditLogs           AuditLog[]
 }
 
@@ -571,6 +584,82 @@ model SocialAlert {
 
   @@unique([guildId, type, sourceId])
   @@index([guildId, enabled])
+}
+
+model Ticket {
+  id              String       @id @default(cuid())
+  guildId         String
+  channelId       String       @unique
+  ownerUserId     String
+  claimedByUserId String?
+  status          TicketStatus @default(OPEN)
+  closeReason     String?
+  createdAt       DateTime     @default(now())
+  closedAt        DateTime?
+  updatedAt       DateTime     @updatedAt
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, status])
+  @@index([guildId, ownerUserId, status])
+}
+
+model InviteAttribution {
+  id            String   @id @default(cuid())
+  guildId       String
+  memberUserId  String
+  inviterUserId String?
+  inviteCode    String?
+  joinedAt      DateTime @default(now())
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, memberUserId])
+  @@index([guildId, inviterUserId])
+  @@index([guildId, joinedAt])
+}
+
+model EmbedMessage {
+  id           String    @id @default(cuid())
+  guildId      String
+  channelId    String
+  messageId    String?
+  content      String?
+  title        String?
+  description  String?
+  color        String    @default("#24b47e")
+  url          String?
+  imageUrl     String?
+  thumbnailUrl String?
+  footerText   String?
+  authorName   String?
+  enabled      Boolean   @default(true)
+  publishedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, enabled])
+  @@index([guildId, channelId])
+}
+
+model Reminder {
+  id              String    @id @default(cuid())
+  guildId         String
+  channelId       String
+  message         String
+  nextRunAt       DateTime
+  intervalSeconds Int?
+  enabled         Boolean   @default(true)
+  createdByUserId String
+  lastRunAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, enabled, nextRunAt])
 }
 
 model AuditLog {

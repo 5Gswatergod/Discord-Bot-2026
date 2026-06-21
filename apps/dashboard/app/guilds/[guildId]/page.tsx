@@ -2,20 +2,26 @@ import {
   autoModRuleInputSchema,
   autoModTriggers,
   economySettingsSchema,
+  embedMessageInputSchema,
+  inviteTrackingSettingsSchema,
   logEvents,
   levelingSettingsSchema,
   moduleKeys,
   moderationSettingsSchema,
   reactionRolePanelInputSchema,
   socialAlertInputSchema,
+  ticketSettingsSchema,
   welcomeSettingsSchema,
   type AutoModRuleInput,
   type CustomCommandInput,
   type EconomyShopItemInput,
+  type EmbedMessageInput,
   type GuildLogEvent,
   type GuildModuleKey,
+  type InviteTrackingSettings,
   type ReactionRolePanelInput,
-  type SocialAlertInput
+  type SocialAlertInput,
+  type TicketSettings
 } from "@guildforge/shared";
 
 import { GuildDashboardShell } from "@/components/guilds/guild-dashboard-shell";
@@ -32,6 +38,13 @@ import { PollsForm, type DashboardPollInput } from "@/components/settings/polls-
 import { ReactionRolesForm } from "@/components/settings/reaction-roles-form";
 import { SocialAlertsForm } from "@/components/settings/social-alerts-form";
 import { WelcomeSettingsForm } from "@/components/settings/welcome-settings-form";
+import { TicketSettingsForm } from "@/components/settings/ticket-settings-form";
+import {
+  InviteTrackingForm,
+  type InviteLeaderboardEntry
+} from "@/components/settings/invite-tracking-form";
+import { EmbedMessagesForm } from "@/components/settings/embed-messages-form";
+import { RemindersForm, type DashboardReminderInput } from "@/components/settings/reminders-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireManageableGuild } from "@/lib/guild-access";
 import { prisma } from "@/lib/prisma";
@@ -57,6 +70,11 @@ const auditActionLabels: Record<string, string> = {
   DASHBOARD_SOCIAL_ALERTS_UPDATE: "更新社群通知",
   DASHBOARD_ECONOMY_SETTINGS_UPDATE: "更新貨幣系統設定",
   DASHBOARD_ECONOMY_SHOP_UPDATE: "更新商店商品",
+  DASHBOARD_TICKET_SETTINGS_UPDATE: "更新客服單設定",
+  DASHBOARD_INVITE_TRACKING_UPDATE: "更新邀請追蹤設定",
+  DASHBOARD_EMBED_MESSAGES_UPDATE: "更新嵌入訊息",
+  DASHBOARD_REMINDERS_UPDATE: "更新提醒排程",
+  TICKET_CLOSED: "關閉客服單",
   ECONOMY_ADMIN_ADD: "管理員增加餘額",
   ECONOMY_ADMIN_REMOVE: "管理員扣除餘額",
   ECONOMY_ADMIN_SET: "管理員設定餘額",
@@ -215,6 +233,28 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         orderBy: {
           createdAt: "desc"
         }
+      },
+      tickets: {
+        take: 10,
+        orderBy: {
+          createdAt: "desc"
+        }
+      },
+      inviteAttributions: {
+        take: 5_000,
+        orderBy: {
+          joinedAt: "desc"
+        }
+      },
+      embedMessages: {
+        orderBy: {
+          createdAt: "asc"
+        }
+      },
+      reminders: {
+        orderBy: {
+          nextRunAt: "asc"
+        }
       }
     }
   });
@@ -237,6 +277,12 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
   );
   const economySettings = economySettingsSchema.parse(
     moduleConfigMap.get("ECONOMY")?.settings ?? {}
+  );
+  const ticketSettings: TicketSettings = ticketSettingsSchema.parse(
+    moduleConfigMap.get("TICKETS")?.settings ?? {}
+  );
+  const inviteTrackingSettings: InviteTrackingSettings = inviteTrackingSettingsSchema.parse(
+    moduleConfigMap.get("INVITE_TRACKING")?.settings ?? {}
   );
   const levelRewards =
     dbGuild?.levelRewards.map((reward) => ({
@@ -345,6 +391,47 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
       perUserLimit: item.perUserLimit,
       status: item.status
     })) ?? [];
+  const embedMessages: EmbedMessageInput[] =
+    dbGuild?.embedMessages.map((message) =>
+      embedMessageInputSchema.parse({
+        id: message.id,
+        channelId: message.channelId,
+        content: message.content,
+        title: message.title,
+        description: message.description,
+        color: message.color,
+        url: message.url,
+        imageUrl: message.imageUrl,
+        thumbnailUrl: message.thumbnailUrl,
+        footerText: message.footerText,
+        authorName: message.authorName,
+        enabled: message.enabled
+      })
+    ) ?? [];
+  const reminders: DashboardReminderInput[] =
+    dbGuild?.reminders.map((reminder) => ({
+      id: reminder.id,
+      channelId: reminder.channelId,
+      message: reminder.message,
+      nextRunAt: reminder.nextRunAt.toISOString(),
+      intervalSeconds: reminder.intervalSeconds,
+      enabled: reminder.enabled
+    })) ?? [];
+  const inviteCountMap = new Map<string, number>();
+
+  for (const attribution of dbGuild?.inviteAttributions ?? []) {
+    if (attribution.inviterUserId) {
+      inviteCountMap.set(
+        attribution.inviterUserId,
+        (inviteCountMap.get(attribution.inviterUserId) ?? 0) + 1
+      );
+    }
+  }
+
+  const inviteLeaderboard: InviteLeaderboardEntry[] = [...inviteCountMap.entries()]
+    .map(([userId, count]) => ({ userId, count }))
+    .sort((left, right) => right.count - left.count)
+    .slice(0, 10);
 
   return (
     <GuildDashboardShell
@@ -630,6 +717,84 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
           </CardHeader>
           <CardContent>
             <SocialAlertsForm guildId={params.guildId} alerts={socialAlerts} />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="tickets" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>客服單</CardTitle>
+            <CardDescription>
+              建立私人客服頻道、設定客服身分組，並由 Hydrava 自動同步開單面板。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-6">
+            <TicketSettingsForm guildId={params.guildId} settings={ticketSettings} />
+            <div className="border-t border-border pt-5">
+              <p className="mb-3 text-sm font-medium">最近客服單</p>
+              <div className="grid gap-2 md:grid-cols-2">
+                {(dbGuild?.tickets ?? []).length > 0 ? (
+                  dbGuild?.tickets.map((ticket) => (
+                    <div key={ticket.id} className="rounded-md border border-border p-3 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium">{ticket.ownerUserId}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {ticket.status === "OPEN" ? "處理中" : "已關閉"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {ticket.createdAt.toLocaleString("zh-TW")}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">目前尚無客服單。</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="invite-tracking" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>邀請追蹤</CardTitle>
+            <CardDescription>記錄新成員使用的邀請連結，並顯示邀請排行榜。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InviteTrackingForm
+              guildId={params.guildId}
+              settings={inviteTrackingSettings}
+              leaderboard={inviteLeaderboard}
+            />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="embed-messages" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>嵌入訊息編輯器</CardTitle>
+            <CardDescription>
+              視覺化建立公告、規則與資訊卡片，Hydrava 會自動發布及同步修改。
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EmbedMessagesForm guildId={params.guildId} messages={embedMessages} />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="reminders" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>提醒事項</CardTitle>
+            <CardDescription>建立一次性或循環提醒，排程在指定頻道自動發送。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RemindersForm guildId={params.guildId} reminders={reminders} />
           </CardContent>
         </Card>
       </section>
