@@ -84,6 +84,14 @@ const navigationGroups = [
       { href: "#temporary-voice", label: "臨時語音", icon: Mic2 },
       { href: "#automations", label: "進階自動化", icon: Workflow }
     ]
+  },
+  {
+    label: "選配整合",
+    items: [
+      { href: "#ai-assistant", label: "Hydrava AI", icon: Bot },
+      { href: "#memberships", label: "付費會員", icon: CircleDollarSign },
+      { href: "#web3", label: "NFT／Web3", icon: ShieldCheck }
+    ]
   }
 ] as const;
 

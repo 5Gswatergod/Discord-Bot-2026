@@ -62,7 +62,10 @@ const moduleIcons: Record<GuildModuleKey, LucideIcon> = {
   BIRTHDAYS: CakeSlice,
   SERVER_STATS: BarChart3,
   TEMPORARY_VOICE: Mic2,
-  AUTOMATIONS: Workflow
+  AUTOMATIONS: Workflow,
+  AI_ASSISTANT: Sparkles,
+  MEMBERSHIPS: CircleDollarSign,
+  WEB3: ShieldCheck
 };
 
 export function ModuleToggleForm({ guildId, modules }: ModuleToggleFormProps) {
