@@ -11,6 +11,7 @@ import type Redis from "ioredis";
 import type { DatabaseClient } from "@guildforge/database";
 
 import type { Logger } from "../lib/logger";
+import type { MusicService } from "../lib/music/music";
 
 export type SlashCommandData =
   | SlashCommandBuilder
@@ -22,6 +23,7 @@ export interface CommandContext {
   redis: Redis | null;
   logger: Logger;
   client: Client;
+  music: MusicService | null;
 }
 
 export interface BotCommand {

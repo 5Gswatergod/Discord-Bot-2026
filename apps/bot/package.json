@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --ext .ts",
-    "test": "tsx --test src/lib/economy/calculations.test.ts src/commands/commands.test.ts src/commands/batch1-utility-management.test.ts src/commands/batch2-community-engagement.test.ts src/commands/batch3-advanced-automation.test.ts src/commands/batch4-notification-platforms.test.ts src/commands/batch5-premium-integrations.test.ts src/commands/reaction-role-auto-sync.test.ts",
+    "test": "tsx --test src/lib/economy/calculations.test.ts src/commands/commands.test.ts src/commands/batch1-utility-management.test.ts src/commands/batch2-community-engagement.test.ts src/commands/batch3-advanced-automation.test.ts src/commands/batch4-notification-platforms.test.ts src/commands/batch5-premium-integrations.test.ts src/commands/reaction-role-auto-sync.test.ts src/commands/music-player.test.ts",
     "register": "tsx src/register-commands.ts"
   },
   "dependencies": {
@@ -21,6 +21,7 @@
     "dotenv": "^16.4.7",
     "ethers": "6.15.0",
     "ioredis": "^5.4.2",
+    "lavalink-client": "2.10.3",
     "zod": "^3.24.1"
   }
 }

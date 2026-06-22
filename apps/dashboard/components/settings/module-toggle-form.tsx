@@ -14,6 +14,7 @@ import {
   MailPlus,
   Medal,
   Mic2,
+  Music2,
   ListChecks,
   MessagesSquare,
   ScrollText,
@@ -63,6 +64,7 @@ const moduleIcons: Record<GuildModuleKey, LucideIcon> = {
   SERVER_STATS: BarChart3,
   TEMPORARY_VOICE: Mic2,
   AUTOMATIONS: Workflow,
+  MUSIC: Music2,
   AI_ASSISTANT: Sparkles,
   MEMBERSHIPS: CircleDollarSign,
   WEB3: ShieldCheck

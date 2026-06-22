@@ -34,6 +34,7 @@ const phaseByModule: Record<GuildModuleKey, ModuleDefinition["phase"]> = {
   SERVER_STATS: 5,
   TEMPORARY_VOICE: 5,
   AUTOMATIONS: 5,
+  MUSIC: 5,
   AI_ASSISTANT: 5,
   MEMBERSHIPS: 5,
   WEB3: 5

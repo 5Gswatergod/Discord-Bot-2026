@@ -40,6 +40,7 @@ import { handleAutomationReaction } from "./lib/automations/automations";
 import { syncMembershipEntitlements } from "./lib/memberships/memberships";
 import { verifyDueWeb3Wallets } from "./lib/web3/web3";
 import { reconcileTemporaryVoiceChannels } from "./lib/temporary-voice/temporary-voice";
+import { MusicService } from "./lib/music/music";
 
 async function main() {
   const client = createBotClient();
@@ -60,11 +61,22 @@ async function main() {
     prisma,
     redis,
     logger,
-    client
+    client,
+    music: null
   };
+  context.music = await MusicService.create(context);
+
+  client.on("raw", (payload) => {
+    void context.music?.handleRaw(payload).catch((error) => {
+      logger.warn("Failed to forward Discord voice payload to Lavalink", { error });
+    });
+  });
 
   client.once(Events.ClientReady, (readyClient) => {
     void handleReady(readyClient, context).then(async () => {
+      await context.music?.initialize(readyClient.user).catch((error) => {
+        logger.warn("Failed to initialize music player", { error });
+      });
       await reconcileTemporaryVoiceChannels(context).catch((error) => {
         logger.warn("Failed to run initial temporary voice reconciliation", { error });
       });
@@ -228,6 +240,11 @@ async function main() {
       logger.warn("Failed to synchronize reaction role panels", { error });
     });
   }, 30_000);
+  const musicInterval = setInterval(() => {
+    void context.music?.reconcile().catch((error) => {
+      logger.warn("Failed to reconcile music players", { error });
+    });
+  }, 15_000);
 
   void syncTicketPanels(context);
   void syncEmbedMessages(context);
@@ -256,6 +273,10 @@ async function main() {
     clearInterval(web3Interval);
     clearInterval(temporaryVoiceInterval);
     clearInterval(reactionRolePanelInterval);
+    clearInterval(musicInterval);
+    await context.music?.prepareShutdown().catch((error) => {
+      logger.warn("Failed to persist music state before shutdown", { error });
+    });
     redis?.disconnect();
     await prisma.$disconnect();
     process.exit(0);

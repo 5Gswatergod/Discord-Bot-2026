@@ -26,6 +26,11 @@ export const botEnvSchema = sharedEnvSchema.extend({
   AI_API_KEY: optionalString,
   AI_MODEL: optionalString,
   WEB3_RPC_URLS_JSON: optionalString,
+  LAVALINK_HOST: z.string().min(1).default("localhost"),
+  LAVALINK_PORT: z.coerce.number().int().positive().max(65_535).default(2333),
+  LAVALINK_PASSWORD: optionalString,
+  SPOTIFY_CLIENT_ID: optionalString,
+  SPOTIFY_CLIENT_SECRET: optionalString,
   GUILD_SYNC_LIMIT: z.coerce.number().int().positive().default(100)
 });
 

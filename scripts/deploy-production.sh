@@ -109,6 +109,32 @@ wait_for_bot() {
   done
 }
 
+wait_for_lavalink() {
+  local tag="$1"
+  local container_id=""
+  local state=""
+  local health=""
+
+  for _ in {1..36}; do
+    container_id="$(compose_for_tag "$tag" ps -q lavalink)"
+    if [[ -n "$container_id" ]]; then
+      state="$(docker inspect --format '{{.State.Status}}' "$container_id" 2>/dev/null || true)"
+      health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id" 2>/dev/null || true)"
+      if [[ "$state" == "running" && "$health" == "healthy" ]]; then
+        return 0
+      fi
+      if [[ "$state" == "exited" || "$state" == "dead" ]]; then
+        break
+      fi
+    fi
+    sleep 5
+  done
+
+  echo "Lavalink did not become healthy." >&2
+  compose_for_tag "$tag" logs --tail=150 lavalink >&2 || true
+  return 1
+}
+
 create_local_rollback_images() {
   local tag=""
   local dashboard_container=""
@@ -194,7 +220,11 @@ if [[ "$TARGET_TAG" == "$previous_tag" ]]; then
 fi
 
 echo "Pulling production images for $TARGET_TAG..."
-compose_for_tag "$TARGET_TAG" pull dashboard bot
+compose_for_tag "$TARGET_TAG" pull dashboard bot lavalink
+
+echo "Starting Lavalink..."
+compose_for_tag "$TARGET_TAG" up -d --no-build --force-recreate lavalink
+wait_for_lavalink "$TARGET_TAG"
 
 echo "Applying the Prisma schema with the target Dashboard image..."
 compose_for_tag "$TARGET_TAG" run --rm --no-deps dashboard corepack pnpm db:push
@@ -214,4 +244,4 @@ DEPLOYMENT_STARTED=false
 trap - ERR
 
 echo "Deployment complete: $TARGET_TAG"
-compose_for_tag "$TARGET_TAG" ps dashboard bot postgres redis caddy
+compose_for_tag "$TARGET_TAG" ps dashboard bot lavalink postgres redis caddy
