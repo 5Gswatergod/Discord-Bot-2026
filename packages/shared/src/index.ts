@@ -446,12 +446,71 @@ export const reactionRolePanelInputSchema = z.object({
     .default("#24b47e"),
   mode: z.enum(reactionRoleModes).default("MULTI_SELECT"),
   enabled: z.boolean().default(true),
-  options: z.array(reactionRoleOptionInputSchema).min(1).max(25)
+  options: z.array(reactionRoleOptionInputSchema).min(1).max(25),
+  publishedChannelId: optionalSnowflakeSchema.optional(),
+  messageId: optionalSnowflakeSchema.optional(),
+  lastSyncedAt: z.string().datetime().nullable().optional(),
+  lastSyncError: z.string().nullable().optional(),
+  syncPending: z.boolean().optional()
+}).superRefine((panel, context) => {
+  const optionIds = new Set<string>();
+  const roleIds = new Set<string>();
+  const reactionEmojis = new Set<string>();
+
+  panel.options.forEach((option, index) => {
+    if (option.id) {
+      if (optionIds.has(option.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "面板選項 ID 不可重複",
+          path: ["options", index, "id"]
+        });
+      }
+      optionIds.add(option.id);
+    }
+
+    if (roleIds.has(option.roleId)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "同一面板不可重複使用相同身分組",
+        path: ["options", index, "roleId"]
+      });
+    }
+    roleIds.add(option.roleId);
+
+    if (option.type === "REACTION" && option.emoji) {
+      if (reactionEmojis.has(option.emoji)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "同一面板的反應 Emoji 不可重複",
+          path: ["options", index, "emoji"]
+        });
+      }
+      reactionEmojis.add(option.emoji);
+    }
+  });
 });
 
-export const reactionRolePanelsUpdateSchema = z.object({
-  panels: z.array(reactionRolePanelInputSchema).max(25)
-});
+export const reactionRolePanelsUpdateSchema = z
+  .object({
+    panels: z.array(reactionRolePanelInputSchema).max(25)
+  })
+  .superRefine((settings, context) => {
+    const panelIds = new Set<string>();
+
+    settings.panels.forEach((panel, index) => {
+      if (panel.id) {
+        if (panelIds.has(panel.id)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "面板 ID 不可重複",
+            path: ["panels", index, "id"]
+          });
+        }
+        panelIds.add(panel.id);
+      }
+    });
+  });
 
 export type ReactionRolePanelInput = z.infer<typeof reactionRolePanelInputSchema>;
 

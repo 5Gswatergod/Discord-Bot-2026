@@ -241,6 +241,9 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         }
       },
       reactionRolePanels: {
+        where: {
+          deletedAt: null
+        },
         include: {
           options: {
             orderBy: {
@@ -480,11 +483,18 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
       reactionRolePanelInputSchema.parse({
         id: panel.id,
         channelId: panel.channelId,
+        publishedChannelId: panel.publishedChannelId,
+        messageId: panel.messageId,
         title: panel.title,
         description: panel.description,
         color: panel.color,
         mode: panel.mode,
         enabled: panel.enabled,
+        lastSyncedAt: panel.lastSyncedAt?.toISOString() ?? null,
+        lastSyncError: panel.lastSyncError,
+        syncPending:
+          Boolean(panel.lastSyncError) ||
+          (panel.enabled ? !panel.lastSyncedAt : Boolean(panel.messageId)),
         options: panel.options.map((option) => ({
           id: option.id,
           type: option.type,

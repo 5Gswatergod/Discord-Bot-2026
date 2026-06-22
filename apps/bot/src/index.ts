@@ -22,7 +22,10 @@ import { handleReady } from "./events/ready";
 import { handleRoleCreate } from "./events/role-create";
 import { handleRoleDelete } from "./events/role-delete";
 import { handleVoiceStateUpdate } from "./events/voice-state-update";
-import { handleReactionRoleReaction } from "./lib/reaction-roles/reaction-roles";
+import {
+  handleReactionRoleReaction,
+  syncReactionRolePanels
+} from "./lib/reaction-roles/reaction-roles";
 import { logger } from "./lib/logger";
 import { createRedisClient } from "./lib/redis";
 import { checkSocialAlerts } from "./lib/social-alerts/social-alerts";
@@ -36,6 +39,7 @@ import { syncServerStats } from "./lib/server-stats/server-stats";
 import { handleAutomationReaction } from "./lib/automations/automations";
 import { syncMembershipEntitlements } from "./lib/memberships/memberships";
 import { verifyDueWeb3Wallets } from "./lib/web3/web3";
+import { reconcileTemporaryVoiceChannels } from "./lib/temporary-voice/temporary-voice";
 
 async function main() {
   const client = createBotClient();
@@ -61,6 +65,12 @@ async function main() {
 
   client.once(Events.ClientReady, (readyClient) => {
     void handleReady(readyClient, context).then(async () => {
+      await reconcileTemporaryVoiceChannels(context).catch((error) => {
+        logger.warn("Failed to run initial temporary voice reconciliation", { error });
+      });
+      await syncReactionRolePanels(context).catch((error) => {
+        logger.warn("Failed to run initial reaction role panel sync", { error });
+      });
       await syncMembershipEntitlements(context).catch((error) => {
         logger.warn("Failed to run initial membership sync", { error });
       });
@@ -208,6 +218,16 @@ async function main() {
       logger.warn("Failed to run Web3 verification scheduler", { error });
     });
   }, 60 * 60_000);
+  const temporaryVoiceInterval = setInterval(() => {
+    void reconcileTemporaryVoiceChannels(context).catch((error) => {
+      logger.warn("Failed to reconcile temporary voice channels", { error });
+    });
+  }, 2 * 60_000);
+  const reactionRolePanelInterval = setInterval(() => {
+    void syncReactionRolePanels(context).catch((error) => {
+      logger.warn("Failed to synchronize reaction role panels", { error });
+    });
+  }, 30_000);
 
   void syncTicketPanels(context);
   void syncEmbedMessages(context);
@@ -234,6 +254,8 @@ async function main() {
     clearInterval(serverStatsInterval);
     clearInterval(membershipInterval);
     clearInterval(web3Interval);
+    clearInterval(temporaryVoiceInterval);
+    clearInterval(reactionRolePanelInterval);
     redis?.disconnect();
     await prisma.$disconnect();
     process.exit(0);

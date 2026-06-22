@@ -1,8 +1,8 @@
 "use client";
 
-import { Plus, Save, Trash2 } from "lucide-react";
+import { ExternalLink, Plus, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import type { ReactionRolePanelInput } from "@guildforge/shared";
 
@@ -17,6 +17,11 @@ import { Textarea } from "@/components/ui/textarea";
 type ReactionRolesFormProps = {
   guildId: string;
   panels: ReactionRolePanelInput[];
+};
+
+type PanelsResponse = {
+  panels?: ReactionRolePanelInput[];
+  error?: string;
 };
 
 function blankPanel(): ReactionRolePanelInput {
@@ -36,6 +41,58 @@ export function ReactionRolesForm({ guildId, panels }: ReactionRolesFormProps) {
   const [pending, startTransition] = useTransition();
   const [localPanels, setLocalPanels] = useState(panels);
   const [message, setMessage] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+
+  useEffect(() => {
+    setLocalPanels(panels);
+  }, [panels]);
+
+  useEffect(() => {
+    if (!polling) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setInterval(() => {
+      void (async () => {
+        const response = await fetch(`/api/guilds/${guildId}/reaction-roles`, {
+          signal: controller.signal,
+          cache: "no-store"
+        }).catch(() => null);
+
+        if (!response?.ok) {
+          return;
+        }
+
+        const body = (await response.json().catch(() => null)) as PanelsResponse | null;
+
+        if (!body?.panels) {
+          return;
+        }
+
+        setLocalPanels(body.panels);
+
+        if (
+          !body.panels.some(
+            (panel) => panel.syncPending && !panel.lastSyncError
+          )
+        ) {
+          setPolling(false);
+          setMessage(
+            body.panels.some((panel) => panel.lastSyncError)
+              ? "設定已儲存，但有面板同步失敗。"
+              : "面板已自動同步到 Discord。"
+          );
+          startTransition(() => router.refresh());
+        }
+      })();
+    }, 3_000);
+
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [guildId, polling, router]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,20 +102,37 @@ export function ReactionRolesForm({ guildId, panels }: ReactionRolesFormProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ panels: localPanels })
     });
+    const body = (await response.json().catch(() => null)) as PanelsResponse | null;
 
-    if (!response.ok) {
-      setMessage("無法儲存自助身分組面板。");
+    if (!response.ok || !body?.panels) {
+      setMessage(body?.error ?? "無法儲存自助身分組面板。");
       return;
     }
 
-    setMessage("已儲存。請使用「/自助身分組 發布」發佈面板。");
-    startTransition(() => router.refresh());
+    setLocalPanels(body.panels);
+    setMessage("設定已儲存，Hydrava 正在自動同步 Discord 面板。");
+    setPolling(
+      body.panels.some((panel) => panel.syncPending && !panel.lastSyncError)
+    );
+
+    if (
+      !body.panels.some(
+        (panel) => panel.syncPending && !panel.lastSyncError
+      )
+    ) {
+      startTransition(() => router.refresh());
+    }
   }
 
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">面板</p>
+        <div>
+          <p className="text-sm font-medium">面板</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            儲存後會自動建立或更新 Discord 訊息，不需要複製任何 ID。
+          </p>
+        </div>
         <Button
           type="button"
           size="sm"
@@ -71,15 +145,19 @@ export function ReactionRolesForm({ guildId, panels }: ReactionRolesFormProps) {
       </div>
       {localPanels.map((panel, panelIndex) => (
         <div
-          key={panel.id ?? panelIndex}
+          key={panel.id ?? `new-panel-${panelIndex}`}
           className="grid gap-3 rounded-md border border-border p-3"
         >
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-medium">{panel.id ? `面板 ${panel.id}` : "新面板"}</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">{panel.title || "新面板"}</p>
+              <PanelSyncStatus guildId={guildId} panel={panel} />
+            </div>
             <Button
               type="button"
               variant="ghost"
               size="icon"
+              aria-label={`刪除 ${panel.title || "面板"}`}
               onClick={() =>
                 setLocalPanels((current) => current.filter((_, index) => index !== panelIndex))
               }
@@ -214,7 +292,7 @@ export function ReactionRolesForm({ guildId, panels }: ReactionRolesFormProps) {
             </div>
             {panel.options.map((option, optionIndex) => (
               <div
-                key={`${option.roleId}-${optionIndex}`}
+                key={option.id ?? `new-option-${panelIndex}-${optionIndex}`}
                 className="grid gap-2 md:grid-cols-[110px_1fr_1fr_90px_auto]"
               >
                 <select
@@ -308,6 +386,7 @@ export function ReactionRolesForm({ guildId, panels }: ReactionRolesFormProps) {
                   type="button"
                   variant="ghost"
                   size="icon"
+                  aria-label={`刪除 ${option.label || "選項"}`}
                   onClick={() =>
                     setLocalPanels((current) =>
                       current.map((item, index) =>
@@ -333,10 +412,54 @@ export function ReactionRolesForm({ guildId, panels }: ReactionRolesFormProps) {
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
           <Save size={16} aria-hidden="true" />
-          儲存
+          儲存並同步
         </Button>
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       </div>
     </form>
+  );
+}
+
+function PanelSyncStatus({
+  guildId,
+  panel
+}: {
+  guildId: string;
+  panel: ReactionRolePanelInput;
+}) {
+  if (!panel.id) {
+    return <p className="mt-1 text-xs text-muted-foreground">尚未儲存</p>;
+  }
+
+  if (panel.lastSyncError) {
+    return (
+      <p className="mt-1 max-w-2xl text-xs text-destructive">
+        同步失敗：{panel.lastSyncError}
+      </p>
+    );
+  }
+
+  if (panel.syncPending) {
+    return <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">等待自動同步…</p>;
+  }
+
+  if (panel.messageId && panel.publishedChannelId) {
+    return (
+      <a
+        className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+        href={`https://discord.com/channels/${guildId}/${panel.publishedChannelId}/${panel.messageId}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        已同步到 Discord
+        <ExternalLink size={12} aria-hidden="true" />
+      </a>
+    );
+  }
+
+  return (
+    <p className="mt-1 text-xs text-muted-foreground">
+      {panel.enabled ? "等待首次發布" : "已停用"}
+    </p>
   );
 }
