@@ -109,6 +109,19 @@ enum SocialAlertType {
   YOUTUBE
   TWITCH
   RSS
+  TIKTOK
+  X
+  BLUESKY
+  REDDIT
+  INSTAGRAM
+  KICK
+  PODCAST
+}
+
+enum SocialAlertDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
 }
 
 enum EconomyTransactionType {
@@ -190,42 +203,43 @@ model Guild {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  config               GuildConfig?
-  moduleConfigs        ModuleConfig[]
-  moderationCases      ModerationCase[]
-  warnings             Warning[]
-  autoModRules         AutoModRule[]
-  levelingUsers        LevelingUser[]
-  levelRewards         LevelReward[]
-  welcomeConfig        WelcomeConfig?
-  reactionRolePanels   ReactionRolePanel[]
-  reactionRoleOptions  ReactionRoleOption[]
-  customCommands       CustomCommand[]
-  logConfigs           LogConfig[]
-  giveaways            Giveaway[]
-  giveawayEntries      GiveawayEntry[]
-  polls                Poll[]
-  pollOptions          PollOption[]
-  pollVotes            PollVote[]
-  socialAlerts         SocialAlert[]
-  economyAccounts      EconomyAccount[]
-  economyTransactions  EconomyTransaction[]
-  economyShopItems     EconomyShopItem[]
-  economyInventory     EconomyInventoryItem[]
-  tickets              Ticket[]
-  inviteAttributions   InviteAttribution[]
-  embedMessages        EmbedMessage[]
-  reminders            Reminder[]
-  starboardEntries     StarboardEntry[]
-  achievements         Achievement[]
-  achievementAwards    AchievementAward[]
-  memberActivities     MemberActivity[]
-  birthdays            Birthday[]
-  serverStatChannels   ServerStatChannel[]
-  temporaryVoice       TemporaryVoiceChannel[]
-  automationRules      AutomationRule[]
-  automationExecutions AutomationExecution[]
-  auditLogs            AuditLog[]
+  config                GuildConfig?
+  moduleConfigs         ModuleConfig[]
+  moderationCases       ModerationCase[]
+  warnings              Warning[]
+  autoModRules          AutoModRule[]
+  levelingUsers         LevelingUser[]
+  levelRewards          LevelReward[]
+  welcomeConfig         WelcomeConfig?
+  reactionRolePanels    ReactionRolePanel[]
+  reactionRoleOptions   ReactionRoleOption[]
+  customCommands        CustomCommand[]
+  logConfigs            LogConfig[]
+  giveaways             Giveaway[]
+  giveawayEntries       GiveawayEntry[]
+  polls                 Poll[]
+  pollOptions           PollOption[]
+  pollVotes             PollVote[]
+  socialAlerts          SocialAlert[]
+  socialAlertDeliveries SocialAlertDelivery[]
+  economyAccounts       EconomyAccount[]
+  economyTransactions   EconomyTransaction[]
+  economyShopItems      EconomyShopItem[]
+  economyInventory      EconomyInventoryItem[]
+  tickets               Ticket[]
+  inviteAttributions    InviteAttribution[]
+  embedMessages         EmbedMessage[]
+  reminders             Reminder[]
+  starboardEntries      StarboardEntry[]
+  achievements          Achievement[]
+  achievementAwards     AchievementAward[]
+  memberActivities      MemberActivity[]
+  birthdays             Birthday[]
+  serverStatChannels    ServerStatChannel[]
+  temporaryVoice        TemporaryVoiceChannel[]
+  automationRules       AutomationRule[]
+  automationExecutions  AutomationExecution[]
+  auditLogs             AuditLog[]
 }
 
 model GuildConfig {
@@ -611,23 +625,55 @@ model PollVote {
 }
 
 model SocialAlert {
-  id              String          @id @default(cuid())
-  guildId         String
-  type            SocialAlertType
-  sourceId        String
-  sourceUrl       String
-  channelId       String
-  messageTemplate String
-  lastSeenId      String?
-  intervalSeconds Int             @default(300)
-  enabled         Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                      String          @id @default(cuid())
+  guildId                 String
+  type                    SocialAlertType
+  sourceId                String
+  sourceUrl               String
+  channelId               String
+  mentionRoleId           String?
+  mentionEveryone         Boolean         @default(false)
+  messageTemplate         String
+  lastSeenId              String?
+  intervalSeconds         Int             @default(300)
+  maxItemsPerCheck        Int             @default(3)
+  maxNotificationsPerHour Int             @default(12)
+  nextCheckAt             DateTime        @default(now())
+  consecutiveFailures     Int             @default(0)
+  lastError               String?
+  lastErrorAt             DateTime?
+  lastSuccessAt           DateTime?
+  enabled                 Boolean         @default(true)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
 
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guild      Guild                 @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  deliveries SocialAlertDelivery[]
 
   @@unique([guildId, type, sourceId])
-  @@index([guildId, enabled])
+  @@index([guildId, enabled, nextCheckAt])
+}
+
+model SocialAlertDelivery {
+  id             String                    @id @default(cuid())
+  guildId        String
+  alertId        String
+  externalItemId String
+  itemUrl        String?
+  status         SocialAlertDeliveryStatus @default(PENDING)
+  attempts       Int                       @default(1)
+  messageId      String?
+  error          String?
+  deliveredAt    DateTime?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  guild Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  alert SocialAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@unique([alertId, externalItemId])
+  @@index([guildId, status, createdAt])
+  @@index([alertId, status, createdAt])
 }
 
 model Ticket {

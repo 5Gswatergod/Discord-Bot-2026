@@ -31,7 +31,6 @@ import {
   type InviteTrackingSettings,
   type ReactionRolePanelInput,
   type ServerStatChannelInput,
-  type SocialAlertInput,
   type StarboardSettings,
   type TicketSettings,
   type TemporaryVoiceSettings
@@ -49,7 +48,10 @@ import { ModerationSettingsForm } from "@/components/settings/moderation-setting
 import { ModuleToggleForm } from "@/components/settings/module-toggle-form";
 import { PollsForm, type DashboardPollInput } from "@/components/settings/polls-form";
 import { ReactionRolesForm } from "@/components/settings/reaction-roles-form";
-import { SocialAlertsForm } from "@/components/settings/social-alerts-form";
+import {
+  SocialAlertsForm,
+  type DashboardSocialAlertInput
+} from "@/components/settings/social-alerts-form";
 import { WelcomeSettingsForm } from "@/components/settings/welcome-settings-form";
 import { TicketSettingsForm } from "@/components/settings/ticket-settings-form";
 import {
@@ -252,6 +254,17 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         }
       },
       socialAlerts: {
+        include: {
+          _count: {
+            select: {
+              deliveries: {
+                where: {
+                  status: "SENT"
+                }
+              }
+            }
+          }
+        },
         orderBy: {
           updatedAt: "desc"
         }
@@ -456,19 +469,29 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
       endsAt: poll.endsAt?.toISOString() ?? null,
       options: poll.options.map((option) => option.label)
     })) ?? [];
-  const socialAlerts: SocialAlertInput[] =
-    dbGuild?.socialAlerts.map((alert) =>
-      socialAlertInputSchema.parse({
+  const socialAlerts: DashboardSocialAlertInput[] =
+    dbGuild?.socialAlerts.map((alert) => ({
+      ...socialAlertInputSchema.parse({
         id: alert.id,
         type: alert.type,
         sourceId: alert.sourceId,
         sourceUrl: alert.sourceUrl,
         channelId: alert.channelId,
+        mentionRoleId: alert.mentionRoleId,
+        mentionEveryone: alert.mentionEveryone,
         messageTemplate: alert.messageTemplate,
         intervalSeconds: alert.intervalSeconds,
+        maxItemsPerCheck: alert.maxItemsPerCheck,
+        maxNotificationsPerHour: alert.maxNotificationsPerHour,
         enabled: alert.enabled
-      })
-    ) ?? [];
+      }),
+      consecutiveFailures: alert.consecutiveFailures,
+      lastError: alert.lastError,
+      lastErrorAt: alert.lastErrorAt?.toISOString() ?? null,
+      lastSuccessAt: alert.lastSuccessAt?.toISOString() ?? null,
+      nextCheckAt: alert.nextCheckAt.toISOString(),
+      sentCount: alert._count.deliveries
+    })) ?? [];
   const economyShopItems: EconomyShopItemInput[] =
     dbGuild?.economyShopItems.map((item) => ({
       id: item.id,
@@ -863,7 +886,9 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <Card>
           <CardHeader>
             <CardTitle>社群通知</CardTitle>
-            <CardDescription>將 YouTube、Twitch 與 RSS 更新通知傳送至 Discord。</CardDescription>
+            <CardDescription>
+              集中管理影片、直播、社群貼文、Reddit、Podcast 與自訂 Feed 通知。
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <SocialAlertsForm guildId={params.guildId} alerts={socialAlerts} />

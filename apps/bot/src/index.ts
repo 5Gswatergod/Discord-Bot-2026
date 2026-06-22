@@ -166,7 +166,9 @@ async function main() {
     void checkExpiredGiveaways(context);
   }, 60_000);
   const socialAlertInterval = setInterval(() => {
-    void checkSocialAlerts(context);
+    void checkSocialAlerts(context).catch((error) => {
+      logger.warn("Failed to run social alert scheduler", { error });
+    });
   }, 60_000);
   const ticketPanelInterval = setInterval(() => {
     void syncTicketPanels(context);

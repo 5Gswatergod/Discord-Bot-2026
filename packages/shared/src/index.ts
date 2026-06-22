@@ -478,21 +478,52 @@ export const pollsUpdateSchema = z.object({
 
 export type PollInput = z.infer<typeof pollInputSchema>;
 
-export const socialAlertTypes = ["YOUTUBE", "TWITCH", "RSS"] as const;
+export const socialAlertTypes = [
+  "YOUTUBE",
+  "TWITCH",
+  "RSS",
+  "TIKTOK",
+  "X",
+  "BLUESKY",
+  "REDDIT",
+  "INSTAGRAM",
+  "KICK",
+  "PODCAST"
+] as const;
 
 export type SocialAlertTypeKey = (typeof socialAlertTypes)[number];
 
 export const socialAlertTypeLabels: Record<SocialAlertTypeKey, string> = {
   YOUTUBE: "YouTube",
   TWITCH: "Twitch",
-  RSS: "RSS 訂閱"
+  RSS: "RSS／Atom",
+  TIKTOK: "TikTok",
+  X: "X",
+  BLUESKY: "Bluesky",
+  REDDIT: "Reddit",
+  INSTAGRAM: "Instagram",
+  KICK: "Kick",
+  PODCAST: "Podcast"
 };
 
 export const defaultSocialAlertTemplates: Record<SocialAlertTypeKey, string> = {
-  YOUTUBE: "{source} 發布了新的 YouTube 影片：**{title}**\n{url}",
-  TWITCH: "{author} 正在 Twitch 直播：**{title}**\n{url}",
-  RSS: "{source} 發布了新文章：**{title}**\n{url}"
+  YOUTUBE: "{mention}{source} 發布了新的 YouTube 影片：**{title}**\n{url}",
+  TWITCH: "{mention}{author} 正在 Twitch 直播：**{title}**\n{url}",
+  RSS: "{mention}{source} 發布了新文章：**{title}**\n{url}",
+  TIKTOK: "{mention}{author} 發布了新的 TikTok：**{title}**\n{url}",
+  X: "{mention}{author} 在 X 發布了新貼文：**{title}**\n{url}",
+  BLUESKY: "{mention}{author} 在 Bluesky 發布了新貼文：**{title}**\n{url}",
+  REDDIT: "{mention}{author} 在 Reddit 發布了新內容：**{title}**\n{url}",
+  INSTAGRAM: "{mention}{author} 發布了新的 Instagram 貼文：**{title}**\n{url}",
+  KICK: "{mention}{author} 在 Kick 有新動態：**{title}**\n{url}",
+  PODCAST: "{mention}{source} 發布了新的 Podcast 集數：**{title}**\n{url}"
 };
+
+export const socialAlertBridgeTypes = ["TIKTOK", "X", "INSTAGRAM", "KICK"] as const;
+
+export function socialAlertNeedsBridge(type: SocialAlertTypeKey) {
+  return (socialAlertBridgeTypes as readonly string[]).includes(type);
+}
 
 export function buildSocialAlertSourceUrl(
   type: SocialAlertTypeKey,
@@ -502,10 +533,6 @@ export function buildSocialAlertSourceUrl(
   const trimmedSourceId = sourceId.trim();
   const trimmedSourceUrl = sourceUrl?.trim();
 
-  if (trimmedSourceUrl) {
-    return trimmedSourceUrl;
-  }
-
   if (type === "YOUTUBE" && trimmedSourceId.startsWith("UC")) {
     return `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(trimmedSourceId)}`;
   }
@@ -514,14 +541,65 @@ export function buildSocialAlertSourceUrl(
     return `https://www.twitch.tv/${encodeURIComponent(trimmedSourceId)}`;
   }
 
-  return trimmedSourceId;
+  if (type === "BLUESKY") {
+    return `https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${encodeURIComponent(trimmedSourceId)}&filter=posts_no_replies&limit=20`;
+  }
+
+  if (type === "REDDIT") {
+    if (
+      trimmedSourceUrl &&
+      !/^https?:\/\/(www\.|old\.)?reddit\.com\//i.test(trimmedSourceUrl)
+    ) {
+      return trimmedSourceUrl;
+    }
+
+    const normalized = trimmedSourceId
+      .replace(/^https?:\/\/(www\.)?reddit\.com\//i, "")
+      .replace(/^\/+|\/+$/g, "");
+    const userMatch = normalized.match(/^(?:u|user)\/(.+)$/i);
+
+    return userMatch
+      ? `https://www.reddit.com/user/${userMatch[1]}/submitted/.rss`
+      : `https://www.reddit.com/${
+          normalized.startsWith("r/") ? normalized : `r/${normalized}`
+        }/new/.rss`;
+  }
+
+  if (type === "RSS" || type === "PODCAST") {
+    return trimmedSourceUrl || trimmedSourceId;
+  }
+
+  return trimmedSourceUrl || "";
 }
 
-function isHttpUrl(value: string) {
+export function isSafePublicHttpUrl(value: string) {
   try {
     const url = new URL(value);
+    const hostname = url.hostname.toLocaleLowerCase();
+    const normalizedHostname = hostname.replace(/^\[|\]$/g, "");
 
-    return url.protocol === "http:" || url.protocol === "https:";
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return false;
+    }
+
+    if (
+      normalizedHostname === "localhost" ||
+      normalizedHostname.endsWith(".local") ||
+      normalizedHostname === "::1" ||
+      normalizedHostname.startsWith("fc") ||
+      normalizedHostname.startsWith("fd") ||
+      normalizedHostname.startsWith("fe80:") ||
+      normalizedHostname.startsWith("127.") ||
+      normalizedHostname.startsWith("10.") ||
+      normalizedHostname.startsWith("192.168.") ||
+      normalizedHostname.startsWith("169.254.")
+    ) {
+      return false;
+    }
+
+    const private172 = normalizedHostname.match(/^172\.(\d{1,3})\./);
+
+    return !private172 || Number(private172[1]) < 16 || Number(private172[1]) > 31;
   } catch {
     return false;
   }
@@ -534,18 +612,32 @@ export const socialAlertInputSchema = z
     sourceId: z.string().min(1).max(200),
     sourceUrl: z.string().max(2_048).optional().default(""),
     channelId: snowflakeSchema,
+    mentionRoleId: optionalSnowflakeSchema.default(null),
+    mentionEveryone: z.boolean().default(false),
     messageTemplate: z.string().min(1).max(1_500),
     intervalSeconds: z.coerce.number().int().min(60).max(86_400).default(300),
+    maxItemsPerCheck: z.coerce.number().int().min(1).max(5).default(3),
+    maxNotificationsPerHour: z.coerce.number().int().min(1).max(60).default(12),
     enabled: z.boolean().default(true)
   })
   .superRefine((alert, context) => {
     const sourceUrl = buildSocialAlertSourceUrl(alert.type, alert.sourceId, alert.sourceUrl);
 
-    if (!isHttpUrl(sourceUrl)) {
+    if (!isSafePublicHttpUrl(sourceUrl)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["sourceUrl"],
-        message: "此社群通知需要有效的來源網址。"
+        message: socialAlertNeedsBridge(alert.type)
+          ? "此平台需要公開的 RSS、Atom、JSON Feed 或 API bridge URL。"
+          : "此社群通知需要有效且可公開存取的來源網址。"
+      });
+    }
+
+    if (alert.mentionEveryone && alert.mentionRoleId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["mentionRoleId"],
+        message: "不可同時提及 everyone 與身分組。"
       });
     }
   });
@@ -556,6 +648,7 @@ export const socialAlertsUpdateSchema = z
   })
   .superRefine((input, context) => {
     const keys = new Set<string>();
+    const ids = new Set<string>();
 
     for (const [index, alert] of input.alerts.entries()) {
       const key = `${alert.type}:${alert.sourceId.toLowerCase()}`;
@@ -569,6 +662,18 @@ export const socialAlertsUpdateSchema = z
       }
 
       keys.add(key);
+
+      if (alert.id) {
+        if (ids.has(alert.id)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["alerts", index, "id"],
+            message: "同一筆通知來源不可重複提交。"
+          });
+        }
+
+        ids.add(alert.id);
+      }
     }
   });
 
