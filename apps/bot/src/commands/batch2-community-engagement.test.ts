@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { PermissionFlagsBits } from "discord.js";
+import { ChannelType, PermissionFlagsBits } from "discord.js";
 
 import {
   achievementSettingsSchema,
@@ -16,6 +16,7 @@ import { achievementCommands } from "./achievements/achievements";
 import { birthdayCommands } from "./birthdays/birthday";
 import { serverStatsCommands } from "./server-stats/server-stats";
 import { temporaryVoiceCommands } from "./temporary-voice/voice";
+import { reconcileTemporaryVoiceChannels } from "../lib/temporary-voice/temporary-voice";
 
 test("serializes unique batch two slash command names", () => {
   const commands = [
@@ -72,4 +73,93 @@ test("validates birthdays and calculates upcoming days", () => {
     daysUntilBirthday(6, 25, "Asia/Taipei", new Date("2026-06-22T04:00:00.000Z")),
     3
   );
+});
+
+test("reconciles empty, missing, and active temporary voice channels", async () => {
+  const removedRecordIds: string[] = [];
+  const deletedChannelIds: string[] = [];
+  const records = [
+    {
+      id: "empty",
+      guildId: "guild",
+      channelId: "empty-channel",
+      ownerUserId: "owner-1",
+      createdAt: new Date()
+    },
+    {
+      id: "active",
+      guildId: "guild",
+      channelId: "active-channel",
+      ownerUserId: "owner-2",
+      createdAt: new Date()
+    },
+    {
+      id: "missing",
+      guildId: "guild",
+      channelId: "missing-channel",
+      ownerUserId: "owner-3",
+      createdAt: new Date()
+    }
+  ];
+  const channels = new Map([
+    [
+      "empty-channel",
+      {
+        id: "empty-channel",
+        type: ChannelType.GuildVoice,
+        members: new Map(),
+        delete: async () => {
+          deletedChannelIds.push("empty-channel");
+        }
+      }
+    ],
+    [
+      "active-channel",
+      {
+        id: "active-channel",
+        type: ChannelType.GuildVoice,
+        members: new Map([["member", {}]]),
+        delete: async () => {
+          deletedChannelIds.push("active-channel");
+        }
+      }
+    ]
+  ]);
+  const context = {
+    prisma: {
+      temporaryVoiceChannel: {
+        findMany: async () => records,
+        deleteMany: async ({ where }: { where: { id: string } }) => {
+          removedRecordIds.push(where.id);
+        }
+      }
+    },
+    client: {
+      guilds: {
+        cache: new Map([
+          [
+            "guild",
+            {
+              id: "guild",
+              channels: {
+                fetch: async (channelId: string) => channels.get(channelId) ?? null
+              }
+            }
+          ]
+        ])
+      }
+    },
+    logger: {
+      info: () => undefined,
+      warn: () => undefined
+    }
+  };
+
+  const summary = await reconcileTemporaryVoiceChannels(context as never);
+
+  assert.deepEqual(deletedChannelIds, ["empty-channel"]);
+  assert.deepEqual(removedRecordIds.sort(), ["empty", "missing"]);
+  assert.equal(summary.deleted, 1);
+  assert.equal(summary.active, 1);
+  assert.equal(summary.missing, 1);
 });
