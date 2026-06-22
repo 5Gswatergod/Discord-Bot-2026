@@ -36,7 +36,6 @@ services:
       _JAVA_OPTIONS: -Xms128m -Xmx${LAVALINK_MAX_HEAP_MB:-384}m
     volumes:
       - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
-      - oracle-lavalink-plugins:/opt/Lavalink/plugins
     expose:
       - "2333"
     healthcheck:
@@ -135,4 +134,3 @@ volumes:
   oracle-redis-data:
   oracle-caddy-data:
   oracle-caddy-config:
-  oracle-lavalink-plugins:
