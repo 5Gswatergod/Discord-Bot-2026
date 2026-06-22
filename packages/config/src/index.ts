@@ -19,6 +19,9 @@ export const botEnvSchema = sharedEnvSchema.extend({
   DISCORD_TEST_GUILD_ID: optionalString,
   TWITCH_CLIENT_ID: optionalString,
   TWITCH_ACCESS_TOKEN: optionalString,
+  REDDIT_CLIENT_ID: optionalString,
+  REDDIT_CLIENT_SECRET: optionalString,
+  REDDIT_USER_AGENT: optionalString,
   GUILD_SYNC_LIMIT: z.coerce.number().int().positive().default(100)
 });
 

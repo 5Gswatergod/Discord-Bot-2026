@@ -83,7 +83,7 @@ export const socialAlertCommand: BotCommand = {
     });
 
     await interaction.editReply(
-      `已檢查 ${summary.checked} 個通知。已傳送 ${summary.sent} 個、建立基準 ${summary.baselined} 個、無變更 ${summary.unchanged} 個、略過 ${summary.skipped} 個、失敗 ${summary.failed} 個。`
+      `已檢查 ${summary.checked} 個通知。已傳送 ${summary.sent} 個、建立基準 ${summary.baselined} 個、無變更 ${summary.unchanged} 個、速率限制 ${summary.rateLimited} 個、略過 ${summary.skipped} 個、失敗 ${summary.failed} 個。`
     );
   }
 };

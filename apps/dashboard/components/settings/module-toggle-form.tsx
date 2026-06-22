@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Star,
   Sparkles,
+  Workflow,
   type LucideIcon
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -60,7 +61,8 @@ const moduleIcons: Record<GuildModuleKey, LucideIcon> = {
   ACHIEVEMENTS: Medal,
   BIRTHDAYS: CakeSlice,
   SERVER_STATS: BarChart3,
-  TEMPORARY_VOICE: Mic2
+  TEMPORARY_VOICE: Mic2,
+  AUTOMATIONS: Workflow
 };
 
 export function ModuleToggleForm({ guildId, modules }: ModuleToggleFormProps) {
