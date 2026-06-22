@@ -28,6 +28,7 @@ enum ModuleKey {
   BIRTHDAYS
   SERVER_STATS
   TEMPORARY_VOICE
+  AUTOMATIONS
 }
 
 enum ModerationAction {
@@ -155,6 +156,20 @@ enum ServerStatType {
   VOICE_CHANNEL_COUNT
 }
 
+enum AutomationTrigger {
+  MESSAGE_CREATE
+  REACTION_ADD
+  MEMBER_JOIN
+  MEMBER_ROLE_UPDATE
+}
+
+enum AutomationExecutionStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+  TEST
+}
+
 model User {
   id        String   @id
   username  String
@@ -175,40 +190,42 @@ model Guild {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  config              GuildConfig?
-  moduleConfigs       ModuleConfig[]
-  moderationCases     ModerationCase[]
-  warnings            Warning[]
-  autoModRules        AutoModRule[]
-  levelingUsers       LevelingUser[]
-  levelRewards        LevelReward[]
-  welcomeConfig       WelcomeConfig?
-  reactionRolePanels  ReactionRolePanel[]
-  reactionRoleOptions ReactionRoleOption[]
-  customCommands      CustomCommand[]
-  logConfigs          LogConfig[]
-  giveaways           Giveaway[]
-  giveawayEntries     GiveawayEntry[]
-  polls               Poll[]
-  pollOptions         PollOption[]
-  pollVotes           PollVote[]
-  socialAlerts        SocialAlert[]
-  economyAccounts     EconomyAccount[]
-  economyTransactions EconomyTransaction[]
-  economyShopItems    EconomyShopItem[]
-  economyInventory    EconomyInventoryItem[]
-  tickets             Ticket[]
-  inviteAttributions  InviteAttribution[]
-  embedMessages       EmbedMessage[]
-  reminders           Reminder[]
-  starboardEntries    StarboardEntry[]
-  achievements        Achievement[]
-  achievementAwards   AchievementAward[]
-  memberActivities    MemberActivity[]
-  birthdays           Birthday[]
-  serverStatChannels  ServerStatChannel[]
-  temporaryVoice      TemporaryVoiceChannel[]
-  auditLogs           AuditLog[]
+  config               GuildConfig?
+  moduleConfigs        ModuleConfig[]
+  moderationCases      ModerationCase[]
+  warnings             Warning[]
+  autoModRules         AutoModRule[]
+  levelingUsers        LevelingUser[]
+  levelRewards         LevelReward[]
+  welcomeConfig        WelcomeConfig?
+  reactionRolePanels   ReactionRolePanel[]
+  reactionRoleOptions  ReactionRoleOption[]
+  customCommands       CustomCommand[]
+  logConfigs           LogConfig[]
+  giveaways            Giveaway[]
+  giveawayEntries      GiveawayEntry[]
+  polls                Poll[]
+  pollOptions          PollOption[]
+  pollVotes            PollVote[]
+  socialAlerts         SocialAlert[]
+  economyAccounts      EconomyAccount[]
+  economyTransactions  EconomyTransaction[]
+  economyShopItems     EconomyShopItem[]
+  economyInventory     EconomyInventoryItem[]
+  tickets              Ticket[]
+  inviteAttributions   InviteAttribution[]
+  embedMessages        EmbedMessage[]
+  reminders            Reminder[]
+  starboardEntries     StarboardEntry[]
+  achievements         Achievement[]
+  achievementAwards    AchievementAward[]
+  memberActivities     MemberActivity[]
+  birthdays            Birthday[]
+  serverStatChannels   ServerStatChannel[]
+  temporaryVoice       TemporaryVoiceChannel[]
+  automationRules      AutomationRule[]
+  automationExecutions AutomationExecution[]
+  auditLogs            AuditLog[]
 }
 
 model GuildConfig {
@@ -799,6 +816,53 @@ model TemporaryVoiceChannel {
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@unique([guildId, ownerUserId])
+}
+
+model AutomationRule {
+  id              String            @id @default(cuid())
+  guildId         String
+  name            String
+  description     String?
+  trigger         AutomationTrigger
+  triggerConfig   Json?
+  conditions      Json
+  actions         Json
+  position        Int               @default(0)
+  enabled         Boolean           @default(true)
+  stopProcessing  Boolean           @default(false)
+  cooldownSeconds Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  guild      Guild                 @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  executions AutomationExecution[]
+
+  @@unique([guildId, name])
+  @@index([guildId, enabled, trigger, position])
+}
+
+model AutomationExecution {
+  id           String                    @id @default(cuid())
+  guildId      String
+  ruleId       String?
+  trigger      AutomationTrigger
+  status       AutomationExecutionStatus
+  eventKey     String?
+  actorUserId  String?
+  targetUserId String?
+  channelId    String?
+  messageId    String?
+  durationMs   Int?
+  error        String?
+  details      Json?
+  createdAt    DateTime                  @default(now())
+
+  guild Guild           @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  rule  AutomationRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@unique([ruleId, eventKey])
+  @@index([guildId, createdAt])
+  @@index([ruleId, createdAt])
 }
 
 model AuditLog {

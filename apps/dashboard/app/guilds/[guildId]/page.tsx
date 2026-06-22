@@ -1,5 +1,7 @@
 import {
   achievementSettingsSchema,
+  automationRuleInputSchema,
+  automationTriggerLabels,
   autoModRuleInputSchema,
   autoModTriggers,
   birthdaySettingsSchema,
@@ -18,6 +20,7 @@ import {
   temporaryVoiceSettingsSchema,
   welcomeSettingsSchema,
   type AchievementSettings,
+  type AutomationRuleInput,
   type AutoModRuleInput,
   type BirthdaySettings,
   type CustomCommandInput,
@@ -63,6 +66,7 @@ import {
 import { ServerStatsForm } from "@/components/settings/server-stats-form";
 import { StarboardSettingsForm } from "@/components/settings/starboard-settings-form";
 import { TemporaryVoiceForm } from "@/components/settings/temporary-voice-form";
+import { AutomationsForm } from "@/components/settings/automations-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireManageableGuild } from "@/lib/guild-access";
 import { prisma } from "@/lib/prisma";
@@ -97,6 +101,7 @@ const auditActionLabels: Record<string, string> = {
   DASHBOARD_BIRTHDAYS_UPDATE: "更新生日祝福",
   DASHBOARD_SERVER_STATS_UPDATE: "更新伺服器統計頻道",
   DASHBOARD_TEMPORARY_VOICE_UPDATE: "更新臨時語音頻道",
+  DASHBOARD_AUTOMATIONS_UPDATE: "更新進階自動化",
   TICKET_CLOSED: "關閉客服單",
   ECONOMY_ADMIN_ADD: "管理員增加餘額",
   ECONOMY_ADMIN_REMOVE: "管理員扣除餘額",
@@ -318,6 +323,29 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         orderBy: {
           createdAt: "desc"
         }
+      },
+      automationRules: {
+        orderBy: [
+          {
+            position: "asc"
+          },
+          {
+            createdAt: "asc"
+          }
+        ]
+      },
+      automationExecutions: {
+        take: 30,
+        include: {
+          rule: {
+            select: {
+              name: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
       }
     }
   });
@@ -523,6 +551,22 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
   const temporaryVoiceSettings: TemporaryVoiceSettings = temporaryVoiceSettingsSchema.parse(
     moduleConfigMap.get("TEMPORARY_VOICE")?.settings ?? {}
   );
+  const automationRules: AutomationRuleInput[] =
+    dbGuild?.automationRules.map((rule) =>
+      automationRuleInputSchema.parse({
+        id: rule.id,
+        name: rule.name,
+        description: rule.description,
+        trigger: rule.trigger,
+        triggerConfig: rule.triggerConfig ?? {},
+        conditions: rule.conditions,
+        actions: rule.actions,
+        position: rule.position,
+        enabled: rule.enabled,
+        stopProcessing: rule.stopProcessing,
+        cooldownSeconds: rule.cooldownSeconds
+      })
+    ) ?? [];
   const inviteCountMap = new Map<string, number>();
 
   for (const attribution of dbGuild?.inviteAttributions ?? []) {
@@ -1011,6 +1055,58 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
               settings={temporaryVoiceSettings}
               activeCount={dbGuild?.temporaryVoice.length ?? 0}
             />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="automations" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>進階自動化</CardTitle>
+            <CardDescription>
+              依訊息、反應、成員加入或身分組變化觸發條件與動作；規則會依畫面順序執行。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-7">
+            <AutomationsForm guildId={params.guildId} rules={automationRules} />
+            <div className="border-t border-border pt-6">
+              <p className="mb-3 text-sm font-semibold">最近執行紀錄</p>
+              <div className="grid gap-2">
+                {(dbGuild?.automationExecutions ?? []).length > 0 ? (
+                  dbGuild?.automationExecutions.map((execution) => (
+                    <div
+                      key={execution.id}
+                      className="grid gap-1 rounded-md border border-border p-3 text-sm md:grid-cols-[1fr_auto]"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {execution.rule?.name ?? "已刪除的規則"}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {automationTriggerLabels[execution.trigger]} ·{" "}
+                          {execution.createdAt.toLocaleString("zh-TW")}
+                          {execution.durationMs !== null ? ` · ${execution.durationMs} ms` : ""}
+                        </p>
+                        {execution.error ? (
+                          <p className="mt-1 text-xs text-destructive">{execution.error}</p>
+                        ) : null}
+                      </div>
+                      <span className="self-start rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+                        {execution.status === "SUCCESS"
+                          ? "成功"
+                          : execution.status === "FAILED"
+                            ? "失敗"
+                            : execution.status === "TEST"
+                              ? "測試"
+                              : "略過"}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">目前沒有執行紀錄。</p>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </section>

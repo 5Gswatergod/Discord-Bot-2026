@@ -20,7 +20,8 @@ export const moduleKeys = [
   "ACHIEVEMENTS",
   "BIRTHDAYS",
   "SERVER_STATS",
-  "TEMPORARY_VOICE"
+  "TEMPORARY_VOICE",
+  "AUTOMATIONS"
 ] as const;
 
 export type GuildModuleKey = (typeof moduleKeys)[number];
@@ -45,7 +46,8 @@ export const moduleLabels: Record<GuildModuleKey, string> = {
   ACHIEVEMENTS: "成就與獎勵",
   BIRTHDAYS: "生日",
   SERVER_STATS: "統計頻道",
-  TEMPORARY_VOICE: "臨時語音頻道"
+  TEMPORARY_VOICE: "臨時語音頻道",
+  AUTOMATIONS: "進階自動化"
 };
 
 export const moduleDescriptions: Record<GuildModuleKey, string> = {
@@ -68,7 +70,8 @@ export const moduleDescriptions: Record<GuildModuleKey, string> = {
   ACHIEVEMENTS: "依聊天、等級與邀請進度解鎖成就及身分組獎勵。",
   BIRTHDAYS: "讓成員登記生日，並在指定頻道自動送上祝福。",
   SERVER_STATS: "以 Discord 頻道名稱即時顯示成員、身分組與頻道統計。",
-  TEMPORARY_VOICE: "成員加入大廳後自動建立私人臨時語音頻道。"
+  TEMPORARY_VOICE: "成員加入大廳後自動建立私人臨時語音頻道。",
+  AUTOMATIONS: "使用事件、條件與動作建立可排序、可測試的自動化工作流程。"
 };
 
 export const discordPermissionBits = {
@@ -799,6 +802,301 @@ export const temporaryVoiceSettingsSchema = z.object({
 });
 
 export type TemporaryVoiceSettings = z.infer<typeof temporaryVoiceSettingsSchema>;
+
+export const automationTriggers = [
+  "MESSAGE_CREATE",
+  "REACTION_ADD",
+  "MEMBER_JOIN",
+  "MEMBER_ROLE_UPDATE"
+] as const;
+
+export type AutomationTriggerKey = (typeof automationTriggers)[number];
+
+export const automationTriggerLabels: Record<AutomationTriggerKey, string> = {
+  MESSAGE_CREATE: "訊息建立",
+  REACTION_ADD: "新增反應",
+  MEMBER_JOIN: "成員加入",
+  MEMBER_ROLE_UPDATE: "成員身分組變更"
+};
+
+export const automationRoleChanges = ["ANY", "ADDED", "REMOVED"] as const;
+
+export const automationTriggerConfigSchema = z.object({
+  emoji: z.string().trim().max(64).optional().nullable().default(null),
+  roleId: optionalSnowflakeSchema.default(null),
+  roleChange: z.enum(automationRoleChanges).default("ANY")
+});
+
+export const automationConditionsSchema = z.object({
+  channelIds: z.array(snowflakeSchema).max(100).default([]),
+  requiredRoleIds: z.array(snowflakeSchema).max(100).default([]),
+  excludedRoleIds: z.array(snowflakeSchema).max(100).default([]),
+  keywords: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
+  keywordMode: z.enum(["ANY", "ALL"]).default("ANY"),
+  activeDays: z.array(z.coerce.number().int().min(0).max(6)).max(7).default([]),
+  startTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional()
+    .nullable()
+    .default(null),
+  endTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional()
+    .nullable()
+    .default(null),
+  timeZone: z.string().trim().refine(isValidTimeZone, "時區格式無效").default("Asia/Taipei")
+});
+
+const automationSendMessageActionSchema = z.object({
+  type: z.literal("SEND_MESSAGE"),
+  channelId: optionalSnowflakeSchema.default(null),
+  content: z.string().trim().min(1).max(2_000)
+});
+
+const automationAddRoleActionSchema = z.object({
+  type: z.literal("ADD_ROLE"),
+  roleId: snowflakeSchema
+});
+
+const automationDeleteMessageActionSchema = z.object({
+  type: z.literal("DELETE_MESSAGE")
+});
+
+const automationTimeoutActionSchema = z.object({
+  type: z.literal("TIMEOUT_MEMBER"),
+  durationSeconds: z.coerce.number().int().min(60).max(2_419_200).default(600),
+  reason: z.string().trim().max(500).optional().nullable().default(null)
+});
+
+const automationKickActionSchema = z.object({
+  type: z.literal("KICK_MEMBER"),
+  reason: z.string().trim().max(500).optional().nullable().default(null)
+});
+
+const automationBanActionSchema = z.object({
+  type: z.literal("BAN_MEMBER"),
+  reason: z.string().trim().max(500).optional().nullable().default(null),
+  deleteMessageSeconds: z.coerce.number().int().min(0).max(604_800).default(0)
+});
+
+export const automationActionSchema = z.discriminatedUnion("type", [
+  automationSendMessageActionSchema,
+  automationAddRoleActionSchema,
+  automationDeleteMessageActionSchema,
+  automationTimeoutActionSchema,
+  automationKickActionSchema,
+  automationBanActionSchema
+]);
+
+export const automationActionTypes = [
+  "SEND_MESSAGE",
+  "ADD_ROLE",
+  "DELETE_MESSAGE",
+  "TIMEOUT_MEMBER",
+  "KICK_MEMBER",
+  "BAN_MEMBER"
+] as const;
+
+export type AutomationActionTypeKey = (typeof automationActionTypes)[number];
+
+export const automationActionLabels: Record<AutomationActionTypeKey, string> = {
+  SEND_MESSAGE: "傳送訊息",
+  ADD_ROLE: "給予身分組",
+  DELETE_MESSAGE: "刪除訊息",
+  TIMEOUT_MEMBER: "禁言成員",
+  KICK_MEMBER: "踢出成員",
+  BAN_MEMBER: "封鎖成員"
+};
+
+export const automationRuleInputSchema = z
+  .object({
+    id: z.string().optional(),
+    name: z.string().trim().min(1).max(100),
+    description: z.string().trim().max(500).optional().nullable().default(null),
+    trigger: z.enum(automationTriggers),
+    triggerConfig: automationTriggerConfigSchema.default({}),
+    conditions: automationConditionsSchema.default({}),
+    actions: z.array(automationActionSchema).min(1).max(10),
+    position: z.coerce.number().int().min(0).max(10_000).default(0),
+    enabled: z.boolean().default(true),
+    stopProcessing: z.boolean().default(false),
+    cooldownSeconds: z.coerce.number().int().min(0).max(604_800).default(0)
+  })
+  .superRefine((rule, context) => {
+    if (
+      (rule.trigger === "MEMBER_JOIN" || rule.trigger === "MEMBER_ROLE_UPDATE") &&
+      rule.actions.some((action) => action.type === "DELETE_MESSAGE")
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["actions"],
+        message: "成員事件沒有可刪除的訊息"
+      });
+    }
+
+    if (
+      (rule.trigger === "MEMBER_JOIN" || rule.trigger === "MEMBER_ROLE_UPDATE") &&
+      rule.actions.some((action) => action.type === "SEND_MESSAGE" && !action.channelId)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["actions"],
+        message: "成員事件的傳送訊息動作必須指定頻道"
+      });
+    }
+
+    if (
+      rule.trigger === "MEMBER_ROLE_UPDATE" &&
+      rule.triggerConfig.roleId &&
+      rule.actions.some(
+        (action) =>
+          action.type === "ADD_ROLE" && action.roleId === rule.triggerConfig.roleId
+      )
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["actions"],
+        message: "不可在身分組觸發器中再次給予同一身分組"
+      });
+    }
+  });
+
+export const automationRulesUpdateSchema = z
+  .object({
+    rules: z.array(automationRuleInputSchema).max(100)
+  })
+  .superRefine((input, context) => {
+    const names = new Set<string>();
+    const ids = new Set<string>();
+
+    input.rules.forEach((rule, index) => {
+      const name = rule.name.toLocaleLowerCase();
+
+      if (names.has(name)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["rules", index, "name"],
+          message: "自動化規則名稱不可重複"
+        });
+      }
+
+      names.add(name);
+
+      if (rule.id) {
+        if (ids.has(rule.id)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["rules", index, "id"],
+            message: "同一筆自動化規則不可重複提交"
+          });
+        }
+
+        ids.add(rule.id);
+      }
+    });
+  });
+
+export const automationTestSchema = z.object({
+  rule: automationRuleInputSchema,
+  sample: z
+    .object({
+      content: z.string().max(4_000).default(""),
+      channelId: optionalSnowflakeSchema.default(null),
+      roleIds: z.array(snowflakeSchema).max(100).default([]),
+      occurredAt: z.coerce.date().default(() => new Date())
+    })
+    .default({})
+});
+
+export type AutomationTriggerConfig = z.infer<typeof automationTriggerConfigSchema>;
+export type AutomationConditions = z.infer<typeof automationConditionsSchema>;
+export type AutomationAction = z.infer<typeof automationActionSchema>;
+export type AutomationRuleInput = z.infer<typeof automationRuleInputSchema>;
+export type AutomationTestInput = z.infer<typeof automationTestSchema>;
+
+export type AutomationConditionSample = {
+  content: string;
+  channelId: string | null;
+  roleIds: string[];
+  occurredAt: Date;
+};
+
+export function evaluateAutomationConditions(
+  conditions: AutomationConditions,
+  sample: AutomationConditionSample
+) {
+  const failures: string[] = [];
+
+  if (
+    conditions.channelIds.length > 0 &&
+    (!sample.channelId || !conditions.channelIds.includes(sample.channelId))
+  ) {
+    failures.push("頻道條件不符合");
+  }
+
+  if (
+    conditions.requiredRoleIds.length > 0 &&
+    !conditions.requiredRoleIds.every((roleId) => sample.roleIds.includes(roleId))
+  ) {
+    failures.push("缺少必要身分組");
+  }
+
+  if (conditions.excludedRoleIds.some((roleId) => sample.roleIds.includes(roleId))) {
+    failures.push("包含排除的身分組");
+  }
+
+  if (conditions.keywords.length > 0) {
+    const content = sample.content.toLocaleLowerCase();
+    const matches = conditions.keywords.map((keyword) =>
+      content.includes(keyword.toLocaleLowerCase())
+    );
+    const keywordMatched =
+      conditions.keywordMode === "ALL" ? matches.every(Boolean) : matches.some(Boolean);
+
+    if (!keywordMatched) {
+      failures.push("關鍵字條件不符合");
+    }
+  }
+
+  const dateParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: conditions.timeZone,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(sample.occurredAt);
+  const values = new Map(dateParts.map((part) => [part.type, part.value]));
+  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
+    values.get("weekday") ?? ""
+  );
+  const currentTime = `${values.get("hour") ?? "00"}:${values.get("minute") ?? "00"}`;
+
+  if (conditions.activeDays.length > 0 && !conditions.activeDays.includes(weekday)) {
+    failures.push("星期條件不符合");
+  }
+
+  if (conditions.startTime && conditions.endTime) {
+    const timeMatched =
+      conditions.startTime <= conditions.endTime
+        ? currentTime >= conditions.startTime && currentTime <= conditions.endTime
+        : currentTime >= conditions.startTime || currentTime <= conditions.endTime;
+
+    if (!timeMatched) {
+      failures.push("時間條件不符合");
+    }
+  } else if (conditions.startTime && currentTime < conditions.startTime) {
+    failures.push("尚未到規則開始時間");
+  } else if (conditions.endTime && currentTime > conditions.endTime) {
+    failures.push("已超過規則結束時間");
+  }
+
+  return {
+    matched: failures.length === 0,
+    failures
+  };
+}
 
 export function formatTemplate(template: string, values: Record<string, string | number>) {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => {

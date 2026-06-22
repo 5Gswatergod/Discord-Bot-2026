@@ -12,6 +12,7 @@ import { handleChannelDelete } from "./events/channel-delete";
 import { handleGuildBanAdd } from "./events/guild-ban-add";
 import { handleGuildBanRemove } from "./events/guild-ban-remove";
 import { handleGuildMemberAdd } from "./events/guild-member-add";
+import { handleGuildMemberUpdate } from "./events/guild-member-update";
 import { handleGuildMemberRemove } from "./events/guild-member-remove";
 import { checkExpiredGiveaways } from "./lib/giveaways/giveaways";
 import { handleMessageDelete } from "./events/message-delete";
@@ -32,6 +33,7 @@ import { refreshGuildInviteSnapshot } from "./lib/invite-tracking/invite-trackin
 import { handleStarboardReaction } from "./lib/starboard/starboard";
 import { checkBirthdays } from "./lib/birthdays/birthdays";
 import { syncServerStats } from "./lib/server-stats/server-stats";
+import { handleAutomationReaction } from "./lib/automations/automations";
 
 async function main() {
   const client = createBotClient();
@@ -72,6 +74,9 @@ async function main() {
     void handleStarboardReaction(reaction, user, context).catch((error) => {
       logger.warn("Failed to process starboard reaction", { error });
     });
+    void handleAutomationReaction(reaction, user, context).catch((error) => {
+      logger.warn("Failed to process reaction automation", { error });
+    });
   });
 
   client.on(Events.MessageReactionRemove, (reaction, user) => {
@@ -95,6 +100,10 @@ async function main() {
 
   client.on(Events.GuildMemberAdd, (member) => {
     void handleGuildMemberAdd(member, context);
+  });
+
+  client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
+    void handleGuildMemberUpdate(oldMember, newMember, context);
   });
 
   client.on(Events.GuildMemberRemove, (member) => {

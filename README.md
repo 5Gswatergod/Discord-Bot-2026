@@ -29,6 +29,10 @@ This repository currently implements Phases 1 through 5 from `Task.md`:
 - Member birthdays with timezone-aware announcements and an upcoming birthday command
 - Auto-updating server statistic channels for members, bots, roles, and channel counts
 - Join-to-create temporary voice channels with owner rename and user-limit controls
+- Advanced automation rules for messages, reactions, member joins, and role changes
+- Automation conditions for channels, roles, keywords, weekdays, time ranges, and timezones
+- Ordered automation actions for messages, roles, message deletion, timeouts, kicks, and bans
+- Dry-run testing, persistent execution logs, cooldowns, event deduplication, and loop prevention
 - Oracle Cloud production deployment with Docker, PostgreSQL, Redis, Caddy HTTPS, health checks, and persistent volumes
 
 ## Stack
@@ -289,6 +293,7 @@ The server overview includes:
 - Birthday settings: announcement channel, message template, timezone, and upcoming-day window
 - Server Stats settings: statistic type, channel name template, category, and enablement
 - Temporary Voice settings: join lobby, category, name template, bitrate, and user limit
+- Automation settings: ordered triggers, conditions, actions, cooldowns, stop-processing behavior, dry-run testing, and execution history
 
 Supported template variables:
 
@@ -309,6 +314,13 @@ Social alert templates support:
 - `{type}`
 - `{server}`
 - `{publishedAt}`
+
+Automation messages support:
+
+- `{user}`, `{userId}`, `{username}`, and `{displayName}`
+- `{channel}`, `{channelId}`, `{messageId}`, and `{content}`
+- `{emoji}`, `{addedRoles}`, and `{removedRoles}`
+- `{server}` and `{rule}`
 
 ## Completed Scope
 
