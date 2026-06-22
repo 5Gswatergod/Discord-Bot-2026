@@ -482,22 +482,28 @@ model WelcomeConfig {
 }
 
 model ReactionRolePanel {
-  id          String           @id @default(cuid())
-  guildId     String
-  channelId   String
-  messageId   String?
-  title       String
-  description String?
-  color       String           @default("#24b47e")
-  mode        ReactionRoleMode @default(MULTI_SELECT)
-  enabled     Boolean          @default(true)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id                         String           @id @default(cuid())
+  guildId                    String
+  channelId                  String
+  publishedChannelId         String?
+  messageId                  String?
+  publishedReactionSignature String?
+  title                      String
+  description                String?
+  color                      String           @default("#24b47e")
+  mode                       ReactionRoleMode @default(MULTI_SELECT)
+  enabled                    Boolean          @default(true)
+  lastSyncedAt               DateTime?
+  lastSyncError              String?
+  deletedAt                  DateTime?
+  createdAt                  DateTime         @default(now())
+  updatedAt                  DateTime         @updatedAt
 
   guild   Guild                @relation(fields: [guildId], references: [id], onDelete: Cascade)
   options ReactionRoleOption[]
 
   @@index([guildId, channelId])
+  @@index([guildId, deletedAt, enabled])
 }
 
 model ReactionRoleOption {

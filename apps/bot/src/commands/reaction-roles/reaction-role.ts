@@ -1,7 +1,7 @@
 import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 
 import type { BotCommand } from "../types";
-import { publishReactionRolePanel } from "../../lib/reaction-roles/reaction-roles";
+import { syncReactionRolePanels } from "../../lib/reaction-roles/reaction-roles";
 import { isGuildModuleEnabled } from "../../lib/modules";
 import { requireGuildPermission } from "../../lib/permissions";
 
@@ -14,16 +14,9 @@ export const reactionRoleCommand: BotCommand = {
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("publish")
-        .setNameLocalizations({ "zh-TW": "發布" })
-        .setDescription("發佈已設定的自助身分組面板。")
-        .addStringOption((option) =>
-          option
-            .setName("panel_id")
-            .setNameLocalizations({ "zh-TW": "面板_id" })
-            .setDescription("管理面板中的面板 ID。")
-            .setRequired(true)
-        )
+        .setName("sync")
+        .setNameLocalizations({ "zh-TW": "同步" })
+        .setDescription("立即同步這個伺服器的所有自助身分組面板。")
     ),
   async execute(interaction, context) {
     if (!interaction.guildId) {
@@ -44,7 +37,11 @@ export const reactionRoleCommand: BotCommand = {
       return;
     }
 
-    const enabled = await isGuildModuleEnabled(context.prisma, interaction.guildId, "REACTION_ROLES");
+    const enabled = await isGuildModuleEnabled(
+      context.prisma,
+      interaction.guildId,
+      "REACTION_ROLES"
+    );
 
     if (!enabled) {
       await interaction.reply({
@@ -54,21 +51,12 @@ export const reactionRoleCommand: BotCommand = {
       return;
     }
 
-    const panelId = interaction.options.getString("panel_id", true);
-    const message = await publishReactionRolePanel(context, interaction.guildId, panelId);
+    await interaction.deferReply({ ephemeral: true });
+    const summary = await syncReactionRolePanels(context, interaction.guildId);
 
-    if (!message) {
-      await interaction.reply({
-        content: "無法發佈此面板，請檢查面板 ID 與頻道權限。",
-        ephemeral: true
-      });
-      return;
-    }
-
-    await interaction.reply({
-      content: `已發佈自助身分組面板：${message.url}`,
-      ephemeral: true
-    });
+    await interaction.editReply(
+      `同步完成：新增 ${summary.created}、更新 ${summary.updated}、刪除 ${summary.deleted}、失敗 ${summary.failed}。`
+    );
   }
 };
 

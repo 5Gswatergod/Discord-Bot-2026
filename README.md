@@ -187,7 +187,7 @@ Current leveling commands:
 
 Current reaction role commands:
 
-- `/reaction-role publish`
+- `/reaction-role sync`
 
 Current giveaway commands:
 
@@ -314,7 +314,7 @@ The server overview includes:
 - Leveling settings: XP per message, cooldown, formula, base XP, level-up message, ignored channels, role rewards
 - AutoMod settings: event rules, punishments, ignored roles/channels, trigger-specific thresholds
 - Custom Commands settings: prefix, command response text, cooldown, allowed roles/channels
-- Reaction Roles settings: panel channel, embed title, description, color, role options, button/reaction mode, single or multi-select
+- Reaction Roles settings: panel channel, embed title, description, color, role options, button/reaction mode, single or multi-select, and automatic Discord message synchronization without manual IDs
 - Giveaway settings: prize, channel, winner count, required role, and end time
 - Poll settings: question, channel, visibility, optional end time, and 2-10 options
 - Social Alerts settings: platform, source/feed URL, channel, shared message template, mentions, interval, per-check batch size, hourly rate limit, health state, and enablement
