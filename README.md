@@ -33,6 +33,8 @@ This repository currently implements Phases 1 through 5 from `Task.md`:
 - Automation conditions for channels, roles, keywords, weekdays, time ranges, and timezones
 - Ordered automation actions for messages, roles, message deletion, timeouts, kicks, and bans
 - Dry-run testing, persistent execution logs, cooldowns, event deduplication, and loop prevention
+- Notification adapters for TikTok, X, Bluesky, Reddit, Instagram, Kick, and Podcast sources
+- Shared notification templates, role/everyone mentions, persistent delivery deduplication, retry backoff, and hourly rate limits
 - Oracle Cloud production deployment with Docker, PostgreSQL, Redis, Caddy HTTPS, health checks, and persistent volumes
 
 ## Stack
@@ -87,6 +89,12 @@ Twitch social alerts are optional. To enable live checks, also set:
 
 - `TWITCH_CLIENT_ID`
 - `TWITCH_ACCESS_TOKEN`
+
+Reddit Data API notifications are optional. Configure an approved Reddit OAuth application with:
+
+- `REDDIT_CLIENT_ID`
+- `REDDIT_CLIENT_SECRET`
+- `REDDIT_USER_AGENT`
 
 For local development, keep:
 
@@ -283,7 +291,7 @@ The server overview includes:
 - Reaction Roles settings: panel channel, embed title, description, color, role options, button/reaction mode, single or multi-select
 - Giveaway settings: prize, channel, winner count, required role, and end time
 - Poll settings: question, channel, visibility, optional end time, and 2-10 options
-- Social Alerts settings: source type, source ID, source URL, channel ID, message template, interval, and enablement
+- Social Alerts settings: platform, source/feed URL, channel, shared message template, mentions, interval, per-check batch size, hourly rate limit, health state, and enablement
 - Ticket settings: panel channel, category, support roles, log channel, panel copy, and open-ticket limit
 - Invite Tracking settings: announcement channel, message template, bot tracking, and leaderboard
 - Embed Messages editor: channel, content, title, description, colors, media, footer, preview, and enablement
@@ -314,6 +322,13 @@ Social alert templates support:
 - `{type}`
 - `{server}`
 - `{publishedAt}`
+- `{mention}`
+
+Bluesky uses its public author-feed API. Reddit uses the OAuth Data API when credentials are
+configured and can otherwise use a feed bridge URL. TikTok, X, Instagram, and Kick require a
+public RSS, Atom, JSON Feed, or compatible API bridge URL because their official public read APIs
+require additional access or authentication. Podcast notifications accept standard RSS, Atom, or
+JSON Feed URLs.
 
 Automation messages support:
 

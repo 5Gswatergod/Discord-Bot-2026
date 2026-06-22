@@ -1,71 +1,82 @@
 import type { Message } from "discord.js";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 
-import { SocialAlertType, type SocialAlert } from "@guildforge/database";
-import { buildSocialAlertSourceUrl, formatTemplate } from "@guildforge/shared";
+import {
+  Prisma,
+  SocialAlertType,
+  type SocialAlert,
+  type SocialAlertDelivery
+} from "@guildforge/database";
+import {
+  buildSocialAlertSourceUrl,
+  formatTemplate,
+  isSafePublicHttpUrl,
+  socialAlertTypeLabels
+} from "@guildforge/shared";
 
 import type { CommandContext } from "../../commands/types";
 import { env } from "../../env";
 import { isSendableGuildTextChannel } from "../channels";
 import { isGuildModuleEnabled } from "../modules";
+import {
+  parseBlueskyEntries,
+  parseJsonFeedEntries,
+  parseRedditEntries,
+  parseXmlFeedEntries,
+  type SocialAlertEntry
+} from "./feed-parsers";
 
-type SocialAlertEntry = {
-  id: string;
-  title: string;
-  url: string;
-  author: string;
-  publishedAt: string | null;
-};
-
-type SocialAlertResult = "sent" | "baseline" | "unchanged" | "no-entry" | "skipped";
+type SocialAlertResult =
+  | "sent"
+  | "baseline"
+  | "unchanged"
+  | "no-entry"
+  | "rate-limited"
+  | "skipped";
 
 type SocialAlertCheckSummary = {
   checked: number;
   sent: number;
   baselined: number;
   unchanged: number;
+  rateLimited: number;
   skipped: number;
   failed: number;
 };
 
 const localCheckTimestamps = new Map<string, number>();
+let lastDeliveryPruneAt = 0;
+let redditTokenCache: { token: string; expiresAt: number } | null = null;
 
-function decodeXml(value: string) {
-  return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) =>
-      String.fromCodePoint(Number.parseInt(hex, 16))
-    )
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 10)))
-    .trim();
+class SourceRequestError extends Error {
+  constructor(
+    message: string,
+    readonly retryAfterSeconds: number | null = null
+  ) {
+    super(message);
+  }
 }
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+function requestError(response: Response, label: string) {
+  const retryAfter = response.headers.get("retry-after");
+  let retryAfterSeconds: number | null = null;
 
-function readTag(block: string, tag: string) {
-  const escapedTag = escapeRegExp(tag);
-  const match = block.match(
-    new RegExp(`<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`, "i")
-  );
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    const date = Date.parse(retryAfter);
 
-  return match ? decodeXml(match[1]) : null;
-}
-
-function readLink(block: string) {
-  const href = block.match(/<link\b[^>]*\bhref=["']([^"']+)["'][^>]*>/i)?.[1];
-
-  if (href) {
-    return decodeXml(href);
+    retryAfterSeconds = Number.isFinite(seconds)
+      ? Math.max(1, seconds)
+      : Number.isNaN(date)
+        ? null
+        : Math.max(1, Math.ceil((date - Date.now()) / 1_000));
   }
 
-  return readTag(block, "link");
+  return new SourceRequestError(
+    `${label} failed with ${response.status}${retryAfter ? `; retry after ${retryAfter}` : ""}`,
+    retryAfterSeconds
+  );
 }
 
 function formatDiscordTimestamp(value: string | null) {
@@ -78,71 +89,153 @@ function formatDiscordTimestamp(value: string | null) {
   return Number.isNaN(timestamp) ? "" : `<t:${Math.floor(timestamp / 1000)}:R>`;
 }
 
-function parseFeedEntries(xml: string): SocialAlertEntry[] {
-  const entryMatches = [...xml.matchAll(/<entry\b[^>]*>([\s\S]*?)<\/entry>/gi)];
-  const itemMatches = [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)];
-  const blocks = (entryMatches.length > 0 ? entryMatches : itemMatches).map((match) => match[1]);
-
-  return blocks
-    .map((block) => {
-      const videoId = readTag(block, "yt:videoId");
-      const url = videoId ? `https://www.youtube.com/watch?v=${videoId}` : readLink(block);
-      const id = videoId ?? readTag(block, "id") ?? readTag(block, "guid") ?? url;
-      const title = readTag(block, "title") ?? "未命名更新";
-      const author = readTag(block, "name") ?? readTag(block, "author") ?? "未知來源";
-      const publishedAt =
-        readTag(block, "published") ?? readTag(block, "updated") ?? readTag(block, "pubDate");
-
-      if (!id || !url) {
-        return null;
-      }
-
-      return {
-        id,
-        title,
-        url,
-        author,
-        publishedAt
-      };
-    })
-    .filter((entry): entry is SocialAlertEntry => Boolean(entry))
-    .sort((left, right) => {
-      const leftTime = left.publishedAt ? Date.parse(left.publishedAt) : 0;
-      const rightTime = right.publishedAt ? Date.parse(right.publishedAt) : 0;
-
-      return rightTime - leftTime;
-    });
-}
-
 async function fetchWithTimeout(url: string, init: RequestInit = {}) {
+  if (!isSafePublicHttpUrl(url)) {
+    throw new Error("Source URL is not a safe public HTTP endpoint");
+  }
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+  let currentUrl = url;
 
   try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Hydrava/0.1 Social Alerts",
-        ...init.headers
+    for (let redirectCount = 0; redirectCount <= 3; redirectCount += 1) {
+      await assertPublicEndpoint(currentUrl);
+      const response = await fetch(currentUrl, {
+        ...init,
+        redirect: "manual",
+        signal: controller.signal,
+        headers: {
+          Accept: "application/feed+json, application/json, application/atom+xml, application/rss+xml, application/xml, text/xml;q=0.9",
+          "User-Agent": "Hydrava/0.1 Social Alerts",
+          ...init.headers
+        }
+      });
+
+      if (response.status < 300 || response.status >= 400) {
+        return response;
       }
-    });
+
+      const location = response.headers.get("location");
+
+      if (!location) {
+        return response;
+      }
+
+      const nextUrl = new URL(location, currentUrl);
+      const requestHeaders = new Headers(init.headers);
+
+      if (
+        nextUrl.origin !== new URL(currentUrl).origin &&
+        (requestHeaders.has("authorization") || requestHeaders.has("client-id"))
+      ) {
+        throw new Error("Authenticated source attempted a cross-origin redirect");
+      }
+
+      currentUrl = nextUrl.toString();
+    }
+
+    throw new Error("Source returned too many redirects");
   } finally {
     clearTimeout(timeout);
   }
 }
 
-async function fetchFeedEntry(alert: SocialAlert) {
+function isPrivateAddress(address: string) {
+  const normalized = address.toLocaleLowerCase();
+
+  if (normalized.startsWith("::ffff:")) {
+    return isPrivateAddress(normalized.slice("::ffff:".length));
+  }
+
+  if (normalized.includes(":")) {
+    return (
+      normalized === "::" ||
+      normalized === "::1" ||
+      normalized.startsWith("fc") ||
+      normalized.startsWith("fd") ||
+      /^fe[89ab]/.test(normalized)
+    );
+  }
+
+  const parts = normalized.split(".").map(Number);
+
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part))) {
+    return true;
+  }
+
+  const [first, second] = parts;
+
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && (second === 0 || second === 168)) ||
+    (first === 198 && (second === 18 || second === 19)) ||
+    first >= 224
+  );
+}
+
+async function assertPublicEndpoint(value: string) {
+  if (!isSafePublicHttpUrl(value)) {
+    throw new Error("Source redirect is not a safe public HTTP endpoint");
+  }
+
+  const url = new URL(value);
+  const hostname = url.hostname.replace(/^\[|\]$/g, "");
+
+  if (isIP(hostname)) {
+    if (isPrivateAddress(hostname)) {
+      throw new Error("Source URL resolves to a private network address");
+    }
+    return;
+  }
+
+  const addresses = await lookup(hostname, {
+    all: true,
+    verbatim: true
+  });
+
+  if (addresses.length === 0 || addresses.some((result) => isPrivateAddress(result.address))) {
+    throw new Error("Source hostname resolves to a private or unavailable address");
+  }
+}
+
+async function fetchFeedEntries(alert: SocialAlert) {
   const sourceUrl = buildSocialAlertSourceUrl(alert.type, alert.sourceId, alert.sourceUrl);
   const response = await fetchWithTimeout(sourceUrl);
 
   if (!response.ok) {
-    throw new Error(`Feed request failed with ${response.status}`);
+    throw requestError(response, "Source request");
   }
 
-  const entries = parseFeedEntries(await response.text());
+  const body = await response.text();
 
-  return entries[0] ?? null;
+  if (body.length > 5_000_000) {
+    throw new Error("Source response is larger than 5 MB");
+  }
+
+  const contentType = response.headers.get("content-type")?.toLocaleLowerCase() ?? "";
+  const looksLikeJson = contentType.includes("json") || body.trimStart().startsWith("{");
+
+  if (!looksLikeJson) {
+    return parseXmlFeedEntries(body);
+  }
+
+  let payload: unknown;
+
+  try {
+    payload = JSON.parse(body) as unknown;
+  } catch {
+    throw new Error("Source returned invalid JSON");
+  }
+
+  return alert.type === SocialAlertType.BLUESKY
+    ? parseBlueskyEntries(payload)
+    : parseJsonFeedEntries(payload, alert.sourceId);
 }
 
 type TwitchStreamsResponse = {
@@ -155,9 +248,9 @@ type TwitchStreamsResponse = {
   }>;
 };
 
-async function fetchTwitchEntry(alert: SocialAlert): Promise<SocialAlertEntry | null> {
+async function fetchTwitchEntries(alert: SocialAlert): Promise<SocialAlertEntry[]> {
   if (!env.TWITCH_CLIENT_ID || !env.TWITCH_ACCESS_TOKEN) {
-    return null;
+    throw new Error("Twitch credentials are not configured");
   }
 
   const response = await fetchWithTimeout(
@@ -171,31 +264,126 @@ async function fetchTwitchEntry(alert: SocialAlert): Promise<SocialAlertEntry | 
   );
 
   if (!response.ok) {
-    throw new Error(`Twitch request failed with ${response.status}`);
+    throw requestError(response, "Twitch request");
   }
 
   const data = (await response.json()) as TwitchStreamsResponse;
   const stream = data.data?.[0];
 
   if (!stream?.id) {
+    return [];
+  }
+
+  return [
+    {
+      id: stream.id,
+      title: stream.title ?? `${stream.user_name ?? alert.sourceId} 正在直播`,
+      url: alert.sourceUrl || `https://www.twitch.tv/${stream.user_login ?? alert.sourceId}`,
+      author: stream.user_name ?? alert.sourceId,
+      publishedAt: stream.started_at ?? null
+    }
+  ];
+}
+
+type RedditTokenResponse = {
+  access_token?: string;
+  expires_in?: number;
+};
+
+async function getRedditAccessToken() {
+  if (redditTokenCache && redditTokenCache.expiresAt > Date.now() + 60_000) {
+    return redditTokenCache.token;
+  }
+
+  if (!env.REDDIT_CLIENT_ID || !env.REDDIT_CLIENT_SECRET) {
     return null;
   }
 
-  return {
-    id: stream.id,
-    title: stream.title ?? `${stream.user_name ?? alert.sourceId} 正在直播`,
-    url: alert.sourceUrl || `https://www.twitch.tv/${stream.user_login ?? alert.sourceId}`,
-    author: stream.user_name ?? alert.sourceId,
-    publishedAt: stream.started_at ?? null
-  };
-}
+  const credentials = Buffer.from(
+    `${env.REDDIT_CLIENT_ID}:${env.REDDIT_CLIENT_SECRET}`
+  ).toString("base64");
+  const response = await fetchWithTimeout("https://www.reddit.com/api/v1/access_token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": env.REDDIT_USER_AGENT ?? "Hydrava/0.1 Social Alerts"
+    },
+    body: new URLSearchParams({
+      grant_type: "client_credentials"
+    })
+  });
 
-async function fetchLatestEntry(alert: SocialAlert) {
-  if (alert.type === SocialAlertType.TWITCH) {
-    return fetchTwitchEntry(alert);
+  if (!response.ok) {
+    throw requestError(response, "Reddit OAuth request");
   }
 
-  return fetchFeedEntry(alert);
+  const payload = (await response.json()) as RedditTokenResponse;
+
+  if (!payload.access_token) {
+    throw new Error("Reddit OAuth response did not include an access token");
+  }
+
+  redditTokenCache = {
+    token: payload.access_token,
+    expiresAt: Date.now() + Math.max(60, payload.expires_in ?? 3_600) * 1_000
+  };
+  return redditTokenCache.token;
+}
+
+function redditApiPath(sourceId: string) {
+  const normalized = sourceId
+    .replace(/^https?:\/\/(www\.)?reddit\.com\//i, "")
+    .replace(/^\/+|\/+$/g, "");
+  const userMatch = normalized.match(/^(?:u|user)\/(.+)$/i);
+
+  return userMatch
+    ? `/user/${userMatch[1]}/submitted`
+    : `/${normalized.startsWith("r/") ? normalized : `r/${normalized}`}/new`;
+}
+
+async function fetchRedditEntries(alert: SocialAlert) {
+  const customBridge = !/^https?:\/\/(www\.|old\.)?reddit\.com\//i.test(alert.sourceUrl);
+
+  if (customBridge) {
+    return fetchFeedEntries(alert);
+  }
+
+  const token = await getRedditAccessToken();
+
+  if (!token) {
+    throw new Error(
+      "Reddit requires REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET, or a public feed bridge URL"
+    );
+  }
+
+  const response = await fetchWithTimeout(
+    `https://oauth.reddit.com${redditApiPath(alert.sourceId)}?limit=20&raw_json=1`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "User-Agent": env.REDDIT_USER_AGENT ?? "Hydrava/0.1 Social Alerts"
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw requestError(response, "Reddit API request");
+  }
+
+  return parseRedditEntries((await response.json()) as unknown);
+}
+
+async function fetchLatestEntries(alert: SocialAlert) {
+  if (alert.type === SocialAlertType.TWITCH) {
+    return fetchTwitchEntries(alert);
+  }
+
+  if (alert.type === SocialAlertType.REDDIT) {
+    return fetchRedditEntries(alert);
+  }
+
+  return fetchFeedEntries(alert);
 }
 
 async function shouldCheckAlert(context: CommandContext, alert: SocialAlert, force = false) {
@@ -203,29 +391,53 @@ async function shouldCheckAlert(context: CommandContext, alert: SocialAlert, for
     return true;
   }
 
-  const intervalSeconds = Math.max(60, alert.intervalSeconds);
+  const lockSeconds = Math.max(30, Math.min(alert.intervalSeconds, 300));
 
   if (context.redis) {
     const result = await context.redis.set(
-      `social-alert:${alert.id}:checked`,
+      `social-alert:${alert.id}:processing`,
       String(Date.now()),
       "EX",
-      intervalSeconds,
+      lockSeconds,
       "NX"
     );
 
-    return result === "OK";
+    if (result !== "OK") {
+      return false;
+    }
+  } else {
+    const now = Date.now();
+    const lastCheckedAt = localCheckTimestamps.get(alert.id) ?? 0;
+
+    if (now - lastCheckedAt < lockSeconds * 1_000) {
+      return false;
+    }
+
+    localCheckTimestamps.set(alert.id, now);
   }
 
-  const now = Date.now();
-  const lastCheckedAt = localCheckTimestamps.get(alert.id) ?? 0;
+  const claimed = await context.prisma.socialAlert.updateMany({
+    where: {
+      id: alert.id,
+      enabled: true,
+      nextCheckAt: {
+        lte: new Date()
+      }
+    },
+    data: {
+      nextCheckAt: new Date(Date.now() + alert.intervalSeconds * 1_000)
+    }
+  });
 
-  if (now - lastCheckedAt < intervalSeconds * 1000) {
-    return false;
+  return claimed.count === 1;
+}
+
+function mentionText(alert: SocialAlert) {
+  if (alert.mentionEveryone) {
+    return "@everyone ";
   }
 
-  localCheckTimestamps.set(alert.id, now);
-  return true;
+  return alert.mentionRoleId ? `<@&${alert.mentionRoleId}> ` : "";
 }
 
 async function sendAlertMessage(
@@ -243,74 +455,232 @@ async function sendAlertMessage(
     return null;
   }
 
-  const content = formatTemplate(alert.messageTemplate, {
+  const mention = mentionText(alert);
+  const formatted = formatTemplate(alert.messageTemplate, {
     title: entry.title,
     url: entry.url,
     author: entry.author,
     source: alert.sourceId,
-    type: alert.type,
+    type: socialAlertTypeLabels[alert.type],
     server: guild.name,
-    publishedAt: formatDiscordTimestamp(entry.publishedAt)
+    publishedAt: formatDiscordTimestamp(entry.publishedAt),
+    mention
   }).trim();
+  const content = `${prefix}${alert.messageTemplate.includes("{mention}") ? "" : mention}${
+    formatted || `${entry.title}\n${entry.url}`
+  }`.slice(0, 2_000);
 
   return channel.send({
-    content: `${prefix}${content || `${entry.title}\n${entry.url}`}`.slice(0, 2000)
+    content,
+    allowedMentions: {
+      parse: alert.mentionEveryone ? ["everyone"] : [],
+      roles: alert.mentionRoleId ? [alert.mentionRoleId] : []
+    }
   });
+}
+
+async function markHealthy(
+  context: CommandContext,
+  alert: SocialAlert,
+  data: { lastSeenId?: string } = {}
+) {
+  await context.prisma.socialAlert.update({
+    where: { id: alert.id },
+    data: {
+      ...data,
+      consecutiveFailures: 0,
+      lastError: null,
+      lastErrorAt: null,
+      lastSuccessAt: new Date(),
+      nextCheckAt: new Date(Date.now() + alert.intervalSeconds * 1_000)
+    }
+  });
+}
+
+async function markFailed(context: CommandContext, alert: SocialAlert, error: unknown) {
+  const failures = alert.consecutiveFailures + 1;
+  const exponentialRetry = Math.min(
+    21_600,
+    Math.max(60, alert.intervalSeconds) * 2 ** Math.min(failures - 1, 6)
+  );
+  const retrySeconds =
+    error instanceof SourceRequestError && error.retryAfterSeconds
+      ? Math.min(86_400, Math.max(exponentialRetry, error.retryAfterSeconds))
+      : exponentialRetry;
+
+  await context.prisma.socialAlert.update({
+    where: { id: alert.id },
+    data: {
+      consecutiveFailures: failures,
+      lastError: (error instanceof Error ? error.message : "Unknown error").slice(0, 2_000),
+      lastErrorAt: new Date(),
+      nextCheckAt: new Date(Date.now() + retrySeconds * 1_000)
+    }
+  });
+}
+
+async function claimDelivery(
+  context: CommandContext,
+  alert: SocialAlert,
+  entry: SocialAlertEntry
+): Promise<{ delivery: SocialAlertDelivery | null; alreadySent: boolean }> {
+  const existing = await context.prisma.socialAlertDelivery.findUnique({
+    where: {
+      alertId_externalItemId: {
+        alertId: alert.id,
+        externalItemId: entry.id
+      }
+    }
+  });
+
+  if (existing?.status === "SENT") {
+    return { delivery: null, alreadySent: true };
+  }
+
+  if (
+    existing?.status === "PENDING" &&
+    Date.now() - existing.updatedAt.getTime() < 5 * 60_000
+  ) {
+    return { delivery: null, alreadySent: false };
+  }
+
+  if (existing) {
+    return {
+      delivery: await context.prisma.socialAlertDelivery.update({
+        where: { id: existing.id },
+        data: {
+          status: "PENDING",
+          attempts: { increment: 1 },
+          error: null,
+          itemUrl: entry.url
+        }
+      }),
+      alreadySent: false
+    };
+  }
+
+  try {
+    return {
+      delivery: await context.prisma.socialAlertDelivery.create({
+        data: {
+          guildId: alert.guildId,
+          alertId: alert.id,
+          externalItemId: entry.id,
+          itemUrl: entry.url
+        }
+      }),
+      alreadySent: false
+    };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { delivery: null, alreadySent: false };
+    }
+
+    throw error;
+  }
 }
 
 async function processSocialAlert(
   context: CommandContext,
-  alert: SocialAlert,
-  options: {
-    forceSend?: boolean;
-  } = {}
+  alert: SocialAlert
 ): Promise<SocialAlertResult> {
-  const moduleEnabled = await isGuildModuleEnabled(context.prisma, alert.guildId, "SOCIAL_ALERTS");
-
-  if (!moduleEnabled) {
+  if (!(await isGuildModuleEnabled(context.prisma, alert.guildId, "SOCIAL_ALERTS"))) {
     return "skipped";
   }
 
-  const entry = await fetchLatestEntry(alert);
+  const entries = await fetchLatestEntries(alert);
 
-  if (!entry) {
+  if (entries.length === 0) {
+    await markHealthy(context, alert);
     return "no-entry";
   }
 
-  if (!alert.lastSeenId && !options.forceSend) {
-    await context.prisma.socialAlert.update({
-      where: {
-        id: alert.id
-      },
-      data: {
-        lastSeenId: entry.id
-      }
-    });
+  if (!alert.lastSeenId) {
+    await markHealthy(context, alert, { lastSeenId: entries[0].id });
     return "baseline";
   }
 
-  if (alert.lastSeenId === entry.id && !options.forceSend) {
+  if (alert.lastSeenId === entries[0].id) {
+    await markHealthy(context, alert);
     return "unchanged";
   }
 
-  const message = await sendAlertMessage(context, alert, entry);
-
-  if (!message) {
-    throw new Error("Alert channel is not available");
-  }
-
-  if (!options.forceSend) {
-    await context.prisma.socialAlert.update({
-      where: {
-        id: alert.id
-      },
-      data: {
-        lastSeenId: entry.id
+  const previousIndex = entries.findIndex((entry) => entry.id === alert.lastSeenId);
+  const pendingEntries = (
+    previousIndex >= 0 ? entries.slice(0, previousIndex) : entries.slice(0, 1)
+  )
+    .reverse()
+    .slice(0, alert.maxItemsPerCheck);
+  const sentLastHour = await context.prisma.socialAlertDelivery.count({
+    where: {
+      alertId: alert.id,
+      status: "SENT",
+      deliveredAt: {
+        gte: new Date(Date.now() - 60 * 60_000)
       }
-    });
+    }
+  });
+  let remaining = Math.max(0, alert.maxNotificationsPerHour - sentLastHour);
+  let sent = 0;
+  let lastSeenId = alert.lastSeenId;
+  let progressed = false;
+
+  if (remaining === 0) {
+    await markHealthy(context, alert);
+    return "rate-limited";
   }
 
-  return "sent";
+  for (const entry of pendingEntries) {
+    if (remaining === 0) {
+      break;
+    }
+
+    const claim = await claimDelivery(context, alert, entry);
+
+    if (claim.alreadySent) {
+      lastSeenId = entry.id;
+      progressed = true;
+      continue;
+    }
+
+    if (!claim.delivery) {
+      continue;
+    }
+
+    try {
+      const message = await sendAlertMessage(context, alert, entry);
+
+      if (!message) {
+        throw new Error("Alert channel was deleted or is not accessible");
+      }
+
+      await context.prisma.socialAlertDelivery.update({
+        where: { id: claim.delivery.id },
+        data: {
+          status: "SENT",
+          messageId: message.id,
+          deliveredAt: new Date(),
+          error: null
+        }
+      });
+      lastSeenId = entry.id;
+      progressed = true;
+      remaining -= 1;
+      sent += 1;
+    } catch (error) {
+      await context.prisma.socialAlertDelivery.update({
+        where: { id: claim.delivery.id },
+        data: {
+          status: "FAILED",
+          error: (error instanceof Error ? error.message : "Unknown error").slice(0, 2_000)
+        }
+      });
+      throw error;
+    }
+  }
+
+  await markHealthy(context, alert, { lastSeenId });
+  return sent > 0 ? "sent" : progressed ? "unchanged" : "rate-limited";
 }
 
 export async function checkSocialAlerts(
@@ -320,13 +690,40 @@ export async function checkSocialAlerts(
     force?: boolean;
   } = {}
 ): Promise<SocialAlertCheckSummary> {
+  if (Date.now() - lastDeliveryPruneAt > 24 * 60 * 60_000) {
+    lastDeliveryPruneAt = Date.now();
+    await context.prisma.socialAlertDelivery
+      .deleteMany({
+        where: {
+          OR: [
+            {
+              status: "SENT",
+              createdAt: {
+                lt: new Date(Date.now() - 90 * 24 * 60 * 60_000)
+              }
+            },
+            {
+              status: { in: ["FAILED", "PENDING"] },
+              createdAt: {
+                lt: new Date(Date.now() - 30 * 24 * 60 * 60_000)
+              }
+            }
+          ]
+        }
+      })
+      .catch((error) => {
+        context.logger.warn("Failed to prune social alert delivery history", { error });
+      });
+  }
+
   const alerts = await context.prisma.socialAlert.findMany({
     where: {
       enabled: true,
-      guildId: options.guildId
+      guildId: options.guildId,
+      ...(options.force ? {} : { nextCheckAt: { lte: new Date() } })
     },
     orderBy: {
-      updatedAt: "asc"
+      nextCheckAt: "asc"
     },
     take: 100
   });
@@ -335,6 +732,7 @@ export async function checkSocialAlerts(
     sent: 0,
     baselined: 0,
     unchanged: 0,
+    rateLimited: 0,
     skipped: 0,
     failed: 0
   };
@@ -358,11 +756,14 @@ export async function checkSocialAlerts(
         summary.baselined += 1;
       } else if (result === "unchanged") {
         summary.unchanged += 1;
+      } else if (result === "rate-limited") {
+        summary.rateLimited += 1;
       } else {
         summary.skipped += 1;
       }
     } catch (error) {
       summary.failed += 1;
+      await markFailed(context, alert, error).catch(() => null);
       context.logger.warn("Failed to check social alert", {
         alertId: alert.id,
         guildId: alert.guildId,
@@ -387,31 +788,38 @@ export async function testSocialAlert(context: CommandContext, guildId: string, 
   if (!alert) {
     return {
       ok: false as const,
-      message: "找不到社群通知，或通知已停用。"
+      message: "找不到通知來源，或通知已停用。"
     };
   }
 
-  const entry = await fetchLatestEntry(alert);
+  try {
+    const entry = (await fetchLatestEntries(alert))[0];
 
-  if (!entry) {
+    if (!entry) {
+      return {
+        ok: false as const,
+        message:
+          alert.type === SocialAlertType.TWITCH
+            ? "目前沒有直播，或 Twitch 憑證尚未設定。"
+            : "來源目前沒有可用的新項目。"
+      };
+    }
+
+    const sent = await sendAlertMessage(context, alert, entry, "[測試] ");
+
+    return sent
+      ? {
+          ok: true as const,
+          message: `測試通知已傳送至 <#${alert.channelId}>。`
+        }
+      : {
+          ok: false as const,
+          message: "無法傳送到設定的通知頻道。"
+        };
+  } catch (error) {
     return {
       ok: false as const,
-      message:
-        alert.type === SocialAlertType.TWITCH
-          ? "找不到進行中的 Twitch 直播，或尚未設定 Twitch 憑證。"
-          : "找不到訂閱來源項目。"
+      message: `測試失敗：${error instanceof Error ? error.message : "未知錯誤"}`
     };
   }
-
-  const sent = await sendAlertMessage(context, alert, entry, "[測試] ");
-
-  return sent
-    ? {
-        ok: true as const,
-        message: `已將測試通知傳送至 <#${alert.channelId}>。`
-      }
-    : {
-        ok: false as const,
-        message: "無法傳送至設定的通知頻道。"
-      };
 }
