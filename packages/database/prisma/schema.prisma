@@ -23,11 +23,6 @@ enum ModuleKey {
   INVITE_TRACKING
   EMBED_MESSAGES
   REMINDERS
-  STARBOARD
-  ACHIEVEMENTS
-  BIRTHDAYS
-  SERVER_STATS
-  TEMPORARY_VOICE
 }
 
 enum ModerationAction {
@@ -140,21 +135,6 @@ enum TicketStatus {
   CLOSED
 }
 
-enum AchievementTrigger {
-  MESSAGE_COUNT
-  LEVEL
-  INVITE_COUNT
-}
-
-enum ServerStatType {
-  MEMBER_COUNT
-  HUMAN_COUNT
-  BOT_COUNT
-  ROLE_COUNT
-  TEXT_CHANNEL_COUNT
-  VOICE_CHANNEL_COUNT
-}
-
 model User {
   id        String   @id
   username  String
@@ -201,13 +181,6 @@ model Guild {
   inviteAttributions  InviteAttribution[]
   embedMessages       EmbedMessage[]
   reminders           Reminder[]
-  starboardEntries    StarboardEntry[]
-  achievements        Achievement[]
-  achievementAwards   AchievementAward[]
-  memberActivities    MemberActivity[]
-  birthdays           Birthday[]
-  serverStatChannels  ServerStatChannel[]
-  temporaryVoice      TemporaryVoiceChannel[]
   auditLogs           AuditLog[]
 }
 
@@ -687,118 +660,6 @@ model Reminder {
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@index([guildId, enabled, nextRunAt])
-}
-
-model StarboardEntry {
-  id                 String   @id @default(cuid())
-  guildId            String
-  sourceChannelId    String
-  sourceMessageId    String
-  starboardChannelId String
-  starboardMessageId String?
-  authorUserId       String
-  starCount          Int      @default(0)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-
-  @@unique([guildId, sourceMessageId])
-  @@index([guildId, starboardChannelId])
-}
-
-model Achievement {
-  id           String             @id @default(cuid())
-  guildId      String
-  name         String
-  description  String?
-  icon         String?
-  trigger      AchievementTrigger
-  threshold    Int
-  rewardRoleId String?
-  enabled      Boolean            @default(true)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-
-  guild  Guild              @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  awards AchievementAward[]
-
-  @@unique([guildId, name])
-  @@index([guildId, enabled, trigger])
-}
-
-model AchievementAward {
-  id            String   @id @default(cuid())
-  guildId       String
-  achievementId String
-  userId        String
-  awardedAt     DateTime @default(now())
-
-  guild       Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-
-  @@unique([achievementId, userId])
-  @@index([guildId, userId, awardedAt])
-}
-
-model MemberActivity {
-  id           String   @id @default(cuid())
-  guildId      String
-  userId       String
-  messageCount Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-
-  @@unique([guildId, userId])
-  @@index([guildId, messageCount])
-}
-
-model Birthday {
-  id                 String   @id @default(cuid())
-  guildId            String
-  userId             String
-  month              Int
-  day                Int
-  year               Int?
-  lastCelebratedYear Int?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-
-  @@unique([guildId, userId])
-  @@index([guildId, month, day])
-}
-
-model ServerStatChannel {
-  id         String         @id @default(cuid())
-  guildId    String
-  type       ServerStatType
-  template   String
-  categoryId String?
-  channelId  String?
-  enabled    Boolean        @default(true)
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-
-  @@unique([guildId, type])
-  @@index([guildId, enabled])
-}
-
-model TemporaryVoiceChannel {
-  id          String   @id @default(cuid())
-  guildId     String
-  channelId   String   @unique
-  ownerUserId String
-  createdAt   DateTime @default(now())
-
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-
-  @@unique([guildId, ownerUserId])
 }
 
 model AuditLog {

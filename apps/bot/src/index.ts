@@ -29,9 +29,6 @@ import { syncTicketPanels } from "./lib/tickets/tickets";
 import { syncEmbedMessages } from "./lib/embed-messages/embed-messages";
 import { checkDueReminders } from "./lib/reminders/reminders";
 import { refreshGuildInviteSnapshot } from "./lib/invite-tracking/invite-tracking";
-import { handleStarboardReaction } from "./lib/starboard/starboard";
-import { checkBirthdays } from "./lib/birthdays/birthdays";
-import { syncServerStats } from "./lib/server-stats/server-stats";
 
 async function main() {
   const client = createBotClient();
@@ -69,16 +66,10 @@ async function main() {
 
   client.on(Events.MessageReactionAdd, (reaction, user) => {
     void handleReactionRoleReaction(reaction, user, context, "add");
-    void handleStarboardReaction(reaction, user, context).catch((error) => {
-      logger.warn("Failed to process starboard reaction", { error });
-    });
   });
 
   client.on(Events.MessageReactionRemove, (reaction, user) => {
     void handleReactionRoleReaction(reaction, user, context, "remove");
-    void handleStarboardReaction(reaction, user, context).catch((error) => {
-      logger.warn("Failed to process starboard reaction", { error });
-    });
   });
 
   client.on(Events.MessageDelete, (message) => {
@@ -168,26 +159,10 @@ async function main() {
   const reminderInterval = setInterval(() => {
     void checkDueReminders(context);
   }, 30_000);
-  const birthdayInterval = setInterval(() => {
-    void checkBirthdays(context).catch((error) => {
-      logger.warn("Failed to run birthday scheduler", { error });
-    });
-  }, 60 * 60_000);
-  const serverStatsInterval = setInterval(() => {
-    void syncServerStats(context).catch((error) => {
-      logger.warn("Failed to run server statistics scheduler", { error });
-    });
-  }, 10 * 60_000);
 
   void syncTicketPanels(context);
   void syncEmbedMessages(context);
   void checkDueReminders(context);
-  void checkBirthdays(context).catch((error) => {
-    logger.warn("Failed to run initial birthday check", { error });
-  });
-  void syncServerStats(context).catch((error) => {
-    logger.warn("Failed to run initial server statistics sync", { error });
-  });
 
   const shutdown = async (signal: string) => {
     logger.info("Shutting down bot", {
@@ -200,8 +175,6 @@ async function main() {
     clearInterval(ticketPanelInterval);
     clearInterval(embedMessageInterval);
     clearInterval(reminderInterval);
-    clearInterval(birthdayInterval);
-    clearInterval(serverStatsInterval);
     redis?.disconnect();
     await prisma.$disconnect();
     process.exit(0);

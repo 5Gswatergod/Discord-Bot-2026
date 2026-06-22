@@ -1,9 +1,7 @@
 import {
   Activity,
-  BarChart3,
   BellRing,
   Bot,
-  CakeSlice,
   CalendarClock,
   ChevronDown,
   CircleDollarSign,
@@ -14,14 +12,11 @@ import {
   LayoutDashboard,
   ListChecks,
   MailPlus,
-  Medal,
   MessagesSquare,
-  Mic2,
   ScrollText,
   Settings2,
   ShieldCheck,
   Sparkles,
-  Star,
   TicketCheck,
   Users
 } from "lucide-react";
@@ -65,10 +60,7 @@ const navigationGroups = [
       { href: "#welcome", label: "歡迎與離開", icon: Hand },
       { href: "#leveling", label: "等級系統", icon: ListChecks },
       { href: "#reaction-roles", label: "自助身分組", icon: MessagesSquare },
-      { href: "#custom-commands", label: "自訂指令", icon: Command },
-      { href: "#starboard", label: "熱門訊息牆", icon: Star },
-      { href: "#achievements", label: "成就與獎勵", icon: Medal },
-      { href: "#birthdays", label: "生日祝福", icon: CakeSlice }
+      { href: "#custom-commands", label: "自訂指令", icon: Command }
     ]
   },
   {
@@ -78,9 +70,7 @@ const navigationGroups = [
       { href: "#giveaways", label: "抽獎與投票", icon: Gift },
       { href: "#social-alerts", label: "社群通知", icon: BellRing },
       { href: "#embed-messages", label: "嵌入訊息", icon: FileText },
-      { href: "#reminders", label: "提醒事項", icon: CalendarClock },
-      { href: "#server-stats", label: "伺服器統計", icon: BarChart3 },
-      { href: "#temporary-voice", label: "臨時語音", icon: Mic2 }
+      { href: "#reminders", label: "提醒事項", icon: CalendarClock }
     ]
   }
 ] as const;

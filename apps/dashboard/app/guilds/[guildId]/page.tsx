@@ -1,8 +1,6 @@
 import {
-  achievementSettingsSchema,
   autoModRuleInputSchema,
   autoModTriggers,
-  birthdaySettingsSchema,
   economySettingsSchema,
   embedMessageInputSchema,
   inviteTrackingSettingsSchema,
@@ -11,15 +9,10 @@ import {
   moduleKeys,
   moderationSettingsSchema,
   reactionRolePanelInputSchema,
-  serverStatChannelInputSchema,
   socialAlertInputSchema,
-  starboardSettingsSchema,
   ticketSettingsSchema,
-  temporaryVoiceSettingsSchema,
   welcomeSettingsSchema,
-  type AchievementSettings,
   type AutoModRuleInput,
-  type BirthdaySettings,
   type CustomCommandInput,
   type EconomyShopItemInput,
   type EmbedMessageInput,
@@ -27,11 +20,8 @@ import {
   type GuildModuleKey,
   type InviteTrackingSettings,
   type ReactionRolePanelInput,
-  type ServerStatChannelInput,
   type SocialAlertInput,
-  type StarboardSettings,
-  type TicketSettings,
-  type TemporaryVoiceSettings
+  type TicketSettings
 } from "@guildforge/shared";
 
 import { GuildDashboardShell } from "@/components/guilds/guild-dashboard-shell";
@@ -55,14 +45,6 @@ import {
 } from "@/components/settings/invite-tracking-form";
 import { EmbedMessagesForm } from "@/components/settings/embed-messages-form";
 import { RemindersForm, type DashboardReminderInput } from "@/components/settings/reminders-form";
-import { AchievementsForm } from "@/components/settings/achievements-form";
-import {
-  BirthdaySettingsForm,
-  type DashboardBirthday
-} from "@/components/settings/birthday-settings-form";
-import { ServerStatsForm } from "@/components/settings/server-stats-form";
-import { StarboardSettingsForm } from "@/components/settings/starboard-settings-form";
-import { TemporaryVoiceForm } from "@/components/settings/temporary-voice-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireManageableGuild } from "@/lib/guild-access";
 import { prisma } from "@/lib/prisma";
@@ -92,11 +74,6 @@ const auditActionLabels: Record<string, string> = {
   DASHBOARD_INVITE_TRACKING_UPDATE: "更新邀請追蹤設定",
   DASHBOARD_EMBED_MESSAGES_UPDATE: "更新嵌入訊息",
   DASHBOARD_REMINDERS_UPDATE: "更新提醒排程",
-  DASHBOARD_STARBOARD_UPDATE: "更新熱門訊息牆",
-  DASHBOARD_ACHIEVEMENTS_UPDATE: "更新成就與獎勵",
-  DASHBOARD_BIRTHDAYS_UPDATE: "更新生日祝福",
-  DASHBOARD_SERVER_STATS_UPDATE: "更新伺服器統計頻道",
-  DASHBOARD_TEMPORARY_VOICE_UPDATE: "更新臨時語音頻道",
   TICKET_CLOSED: "關閉客服單",
   ECONOMY_ADMIN_ADD: "管理員增加餘額",
   ECONOMY_ADMIN_REMOVE: "管理員扣除餘額",
@@ -278,46 +255,6 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         orderBy: {
           nextRunAt: "asc"
         }
-      },
-      starboardEntries: {
-        take: 10,
-        orderBy: {
-          starCount: "desc"
-        }
-      },
-      achievements: {
-        orderBy: {
-          createdAt: "asc"
-        }
-      },
-      achievementAwards: {
-        take: 10,
-        include: {
-          achievement: true
-        },
-        orderBy: {
-          awardedAt: "desc"
-        }
-      },
-      birthdays: {
-        orderBy: [
-          {
-            month: "asc"
-          },
-          {
-            day: "asc"
-          }
-        ]
-      },
-      serverStatChannels: {
-        orderBy: {
-          createdAt: "asc"
-        }
-      },
-      temporaryVoice: {
-        orderBy: {
-          createdAt: "desc"
-        }
       }
     }
   });
@@ -480,49 +417,6 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
       intervalSeconds: reminder.intervalSeconds,
       enabled: reminder.enabled
     })) ?? [];
-  const starboardSettings: StarboardSettings = starboardSettingsSchema.parse(
-    moduleConfigMap.get("STARBOARD")?.settings ?? {}
-  );
-  const achievementModuleSettings = achievementSettingsSchema.parse(
-    moduleConfigMap.get("ACHIEVEMENTS")?.settings ?? {}
-  );
-  const achievementSettings: AchievementSettings = {
-    ...achievementModuleSettings,
-    achievements:
-      dbGuild?.achievements.map((achievement) => ({
-        id: achievement.id,
-        name: achievement.name,
-        description: achievement.description,
-        icon: achievement.icon,
-        trigger: achievement.trigger,
-        threshold: achievement.threshold,
-        rewardRoleId: achievement.rewardRoleId,
-        enabled: achievement.enabled
-      })) ?? []
-  };
-  const birthdaySettings: BirthdaySettings = birthdaySettingsSchema.parse(
-    moduleConfigMap.get("BIRTHDAYS")?.settings ?? {}
-  );
-  const birthdays: DashboardBirthday[] =
-    dbGuild?.birthdays.map((birthday) => ({
-      userId: birthday.userId,
-      month: birthday.month,
-      day: birthday.day,
-      year: birthday.year
-    })) ?? [];
-  const serverStatChannels: ServerStatChannelInput[] =
-    dbGuild?.serverStatChannels.map((channel) =>
-      serverStatChannelInputSchema.parse({
-        id: channel.id,
-        type: channel.type,
-        template: channel.template,
-        categoryId: channel.categoryId,
-        enabled: channel.enabled
-      })
-    ) ?? [];
-  const temporaryVoiceSettings: TemporaryVoiceSettings = temporaryVoiceSettingsSchema.parse(
-    moduleConfigMap.get("TEMPORARY_VOICE")?.settings ?? {}
-  );
   const inviteCountMap = new Map<string, number>();
 
   for (const attribution of dbGuild?.inviteAttributions ?? []) {
@@ -901,116 +795,6 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
           </CardHeader>
           <CardContent>
             <RemindersForm guildId={params.guildId} reminders={reminders} />
-          </CardContent>
-        </Card>
-      </section>
-
-      <section id="starboard" className="scroll-mt-28">
-        <Card>
-          <CardHeader>
-            <CardTitle>Starboard 熱門訊息牆</CardTitle>
-            <CardDescription>依照指定反應數量，自動把熱門訊息整理到精華頻道。</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            <StarboardSettingsForm guildId={params.guildId} settings={starboardSettings} />
-            <div className="border-t border-border pt-5">
-              <p className="mb-3 text-sm font-medium">目前熱門訊息</p>
-              <div className="grid gap-2 md:grid-cols-2">
-                {(dbGuild?.starboardEntries ?? []).length > 0 ? (
-                  dbGuild?.starboardEntries.map((entry) => (
-                    <div key={entry.id} className="rounded-md border border-border p-3 text-sm">
-                      <p className="font-medium">{entry.starCount} 個反應</p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        訊息 {entry.sourceMessageId}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">目前還沒有熱門訊息。</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section id="achievements" className="scroll-mt-28">
-        <Card>
-          <CardHeader>
-            <CardTitle>成就與獎勵</CardTitle>
-            <CardDescription>依訊息數、等級或邀請數解鎖成就，並可自動發放身分組。</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            <AchievementsForm guildId={params.guildId} settings={achievementSettings} />
-            <div className="border-t border-border pt-5">
-              <p className="mb-3 text-sm font-medium">最近解鎖</p>
-              <div className="grid gap-2 md:grid-cols-2">
-                {(dbGuild?.achievementAwards ?? []).length > 0 ? (
-                  dbGuild?.achievementAwards.map((award) => (
-                    <div key={award.id} className="rounded-md border border-border p-3 text-sm">
-                      <p className="font-medium">
-                        {award.achievement.icon ?? "🏆"} {award.achievement.name}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {award.userId} · {award.awardedAt.toLocaleString("zh-TW")}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">目前還沒有成就解鎖紀錄。</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section id="birthdays" className="scroll-mt-28">
-        <Card>
-          <CardHeader>
-            <CardTitle>生日紀錄與自動祝福</CardTitle>
-            <CardDescription>
-              成員可用指令登記生日，Hydrava 會依伺服器時區自動送上祝福。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <BirthdaySettingsForm
-              guildId={params.guildId}
-              settings={birthdaySettings}
-              birthdays={birthdays}
-            />
-          </CardContent>
-        </Card>
-      </section>
-
-      <section id="server-stats" className="scroll-mt-28">
-        <Card>
-          <CardHeader>
-            <CardTitle>伺服器統計頻道</CardTitle>
-            <CardDescription>
-              用不可加入的語音頻道即時顯示成員、Bot、身分組與頻道數量。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ServerStatsForm guildId={params.guildId} channels={serverStatChannels} />
-          </CardContent>
-        </Card>
-      </section>
-
-      <section id="temporary-voice" className="scroll-mt-28">
-        <Card>
-          <CardHeader>
-            <CardTitle>臨時語音頻道</CardTitle>
-            <CardDescription>
-              成員加入大廳後自動建立私人語音頻道，無人時自動清除。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <TemporaryVoiceForm
-              guildId={params.guildId}
-              settings={temporaryVoiceSettings}
-              activeCount={dbGuild?.temporaryVoice.length ?? 0}
-            />
           </CardContent>
         </Card>
       </section>

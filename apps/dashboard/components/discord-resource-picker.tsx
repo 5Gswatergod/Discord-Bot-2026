@@ -219,41 +219,6 @@ export function DiscordCategorySelect({
   );
 }
 
-export function DiscordVoiceChannelSelect({
-  value,
-  onValueChange,
-  allowEmpty = true,
-  disabled,
-  className
-}: SinglePickerProps) {
-  const { data, loading } = useDiscordResources();
-  const channels = data?.channels.filter((channel) => channel.type === 2) ?? [];
-  const missingValue = value && !channels.some((channel) => channel.id === value);
-
-  return (
-    <select
-      className={cn(selectClassName, className)}
-      value={value}
-      disabled={disabled || loading || !data}
-      onChange={(event) => onValueChange(event.target.value)}
-    >
-      {allowEmpty ? <option value="">不指定</option> : null}
-      {!allowEmpty && !value && !loading ? (
-        <option value="" disabled>
-          請選擇語音頻道
-        </option>
-      ) : null}
-      {loading ? <option value="">正在載入語音頻道...</option> : null}
-      {missingValue ? <option value={value}>已刪除或無法存取的語音頻道</option> : null}
-      {channels.map((channel) => (
-        <option key={channel.id} value={channel.id}>
-          {channelLabel(channel)}
-        </option>
-      ))}
-    </select>
-  );
-}
-
 export function DiscordRoleSelect({
   value,
   onValueChange,

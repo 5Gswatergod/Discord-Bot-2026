@@ -27,12 +27,7 @@ const phaseByModule: Record<GuildModuleKey, ModuleDefinition["phase"]> = {
   TICKETS: 5,
   INVITE_TRACKING: 5,
   EMBED_MESSAGES: 5,
-  REMINDERS: 5,
-  STARBOARD: 5,
-  ACHIEVEMENTS: 5,
-  BIRTHDAYS: 5,
-  SERVER_STATS: 5,
-  TEMPORARY_VOICE: 5
+  REMINDERS: 5
 };
 
 export const moduleDefinitions: ModuleDefinition[] = moduleKeys.map((key) => ({

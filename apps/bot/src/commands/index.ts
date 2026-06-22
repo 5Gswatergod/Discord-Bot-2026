@@ -13,10 +13,6 @@ import { economyAdminCommands } from "./economy/admin";
 import { ticketCommands } from "./tickets/ticket";
 import { inviteTrackingCommands } from "./invite-tracking/invites";
 import { reminderCommands } from "./reminders/reminder";
-import { achievementCommands } from "./achievements/achievements";
-import { birthdayCommands } from "./birthdays/birthday";
-import { serverStatsCommands } from "./server-stats/server-stats";
-import { temporaryVoiceCommands } from "./temporary-voice/voice";
 import type { BotCommand } from "./types";
 
 export const commands = [
@@ -34,11 +30,7 @@ export const commands = [
   ...socialAlertCommands,
   ...ticketCommands,
   ...inviteTrackingCommands,
-  ...reminderCommands,
-  ...achievementCommands,
-  ...birthdayCommands,
-  ...serverStatsCommands,
-  ...temporaryVoiceCommands
+  ...reminderCommands
 ] satisfies BotCommand[];
 
 export const commandMap = new Map(commands.map((command) => [command.data.name, command]));

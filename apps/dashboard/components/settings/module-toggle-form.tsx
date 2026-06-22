@@ -1,9 +1,7 @@
 "use client";
 
 import {
-  BarChart3,
   BellRing,
-  CakeSlice,
   CalendarClock,
   Check,
   CircleDollarSign,
@@ -12,14 +10,11 @@ import {
   Gift,
   Hand,
   MailPlus,
-  Medal,
-  Mic2,
   ListChecks,
   MessagesSquare,
   ScrollText,
   TicketCheck,
   ShieldCheck,
-  Star,
   Sparkles,
   type LucideIcon
 } from "lucide-react";
@@ -55,12 +50,7 @@ const moduleIcons: Record<GuildModuleKey, LucideIcon> = {
   TICKETS: TicketCheck,
   INVITE_TRACKING: MailPlus,
   EMBED_MESSAGES: FileText,
-  REMINDERS: CalendarClock,
-  STARBOARD: Star,
-  ACHIEVEMENTS: Medal,
-  BIRTHDAYS: CakeSlice,
-  SERVER_STATS: BarChart3,
-  TEMPORARY_VOICE: Mic2
+  REMINDERS: CalendarClock
 };
 
 export function ModuleToggleForm({ guildId, modules }: ModuleToggleFormProps) {
