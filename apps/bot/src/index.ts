@@ -34,6 +34,7 @@ import { handleStarboardReaction } from "./lib/starboard/starboard";
 import { checkBirthdays } from "./lib/birthdays/birthdays";
 import { syncServerStats } from "./lib/server-stats/server-stats";
 import { handleAutomationReaction } from "./lib/automations/automations";
+import { reconcileTemporaryVoiceChannels } from "./lib/temporary-voice/temporary-voice";
 
 async function main() {
   const client = createBotClient();
@@ -58,7 +59,11 @@ async function main() {
   };
 
   client.once(Events.ClientReady, (readyClient) => {
-    void handleReady(readyClient, context);
+    void handleReady(readyClient, context).then(() =>
+      reconcileTemporaryVoiceChannels(context).catch((error) => {
+        logger.warn("Failed to run initial temporary voice reconciliation", { error });
+      })
+    );
   });
 
   client.on(Events.GuildCreate, (guild) => {
@@ -189,6 +194,11 @@ async function main() {
       logger.warn("Failed to run server statistics scheduler", { error });
     });
   }, 10 * 60_000);
+  const temporaryVoiceInterval = setInterval(() => {
+    void reconcileTemporaryVoiceChannels(context).catch((error) => {
+      logger.warn("Failed to reconcile temporary voice channels", { error });
+    });
+  }, 2 * 60_000);
 
   void syncTicketPanels(context);
   void syncEmbedMessages(context);
@@ -213,6 +223,7 @@ async function main() {
     clearInterval(reminderInterval);
     clearInterval(birthdayInterval);
     clearInterval(serverStatsInterval);
+    clearInterval(temporaryVoiceInterval);
     redis?.disconnect();
     await prisma.$disconnect();
     process.exit(0);
