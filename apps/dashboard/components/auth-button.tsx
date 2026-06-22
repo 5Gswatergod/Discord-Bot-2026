@@ -14,11 +14,18 @@ export function SignInButton() {
   );
 }
 
-export function SignOutButton() {
+export function SignOutButton({ compact = false }: { compact?: boolean }) {
   return (
-    <Button variant="outline" onClick={() => signOut({ callbackUrl: "/" })}>
+    <Button
+      variant="outline"
+      size={compact ? "icon" : "default"}
+      className={compact ? "lg:hidden" : undefined}
+      onClick={() => signOut({ callbackUrl: "/" })}
+      aria-label={compact ? "登出" : undefined}
+      title={compact ? "登出" : undefined}
+    >
       <LogOut size={16} aria-hidden="true" />
-      登出
+      {compact ? null : "登出"}
     </Button>
   );
 }

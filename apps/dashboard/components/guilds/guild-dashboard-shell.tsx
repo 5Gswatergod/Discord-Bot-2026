@@ -1,31 +1,4 @@
-import {
-  Activity,
-  BarChart3,
-  BellRing,
-  Bot,
-  CakeSlice,
-  CalendarClock,
-  ChevronDown,
-  CircleDollarSign,
-  Command,
-  FileText,
-  Gift,
-  Hand,
-  LayoutDashboard,
-  ListChecks,
-  MailPlus,
-  Medal,
-  MessagesSquare,
-  Mic2,
-  ScrollText,
-  Settings2,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Workflow,
-  TicketCheck,
-  Users
-} from "lucide-react";
+import { Activity, ChevronDown, Settings2, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -35,65 +8,15 @@ import { DiscordResourcesProvider } from "@/components/discord-resource-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 
+import { dashboardNavigationGroups } from "./guild-dashboard-navigation";
+import { MobileDashboardNavigation } from "./mobile-dashboard-navigation";
+
 type GuildDashboardShellProps = {
   guild: ManageableGuild;
   enabledModuleCount: number;
   auditCount: number;
   children: React.ReactNode;
 };
-
-const navigationGroups = [
-  {
-    label: "總覽",
-    items: [
-      { href: "#overview", label: "控制面板", icon: LayoutDashboard },
-      { href: "#modules", label: "功能中心", icon: Settings2 }
-    ]
-  },
-  {
-    label: "伺服器管理",
-    items: [
-      { href: "#moderation", label: "管理功能", icon: ShieldCheck },
-      { href: "#automod", label: "自動管理", icon: Sparkles },
-      { href: "#logging", label: "伺服器紀錄", icon: ScrollText },
-      { href: "#tickets", label: "客服單", icon: TicketCheck },
-      { href: "#invite-tracking", label: "邀請追蹤", icon: MailPlus }
-    ]
-  },
-  {
-    label: "社群互動",
-    items: [
-      { href: "#welcome", label: "歡迎與離開", icon: Hand },
-      { href: "#leveling", label: "等級系統", icon: ListChecks },
-      { href: "#reaction-roles", label: "自助身分組", icon: MessagesSquare },
-      { href: "#custom-commands", label: "自訂指令", icon: Command },
-      { href: "#starboard", label: "熱門訊息牆", icon: Star },
-      { href: "#achievements", label: "成就與獎勵", icon: Medal },
-      { href: "#birthdays", label: "生日祝福", icon: CakeSlice }
-    ]
-  },
-  {
-    label: "活動與成長",
-    items: [
-      { href: "#economy", label: "貨幣與商店", icon: CircleDollarSign },
-      { href: "#giveaways", label: "抽獎與投票", icon: Gift },
-      { href: "#social-alerts", label: "社群通知", icon: BellRing },
-      { href: "#embed-messages", label: "嵌入訊息", icon: FileText },
-      { href: "#reminders", label: "提醒事項", icon: CalendarClock },
-      { href: "#server-stats", label: "伺服器統計", icon: BarChart3 },
-      { href: "#temporary-voice", label: "臨時語音", icon: Mic2 },
-      { href: "#automations", label: "進階自動化", icon: Workflow }
-    ]
-  },
-  {
-    label: "選配整合",
-    items: [
-      { href: "#ai-assistant", label: "Hydrava AI", icon: Bot },
-      { href: "#memberships", label: "付費會員", icon: CircleDollarSign },
-      { href: "#web3", label: "NFT／Web3", icon: ShieldCheck }
-    ]
-  }
-] as const;
 
 export function GuildDashboardShell({
   guild,
@@ -109,19 +32,25 @@ export function GuildDashboardShell({
             href="/guilds"
             className="hidden h-full w-[280px] shrink-0 items-center gap-3 border-r border-border px-6 lg:flex"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Bot size={22} aria-hidden="true" />
-            </span>
+            <BrandMark size={40} />
             <span>
               <span className="block text-base font-bold tracking-wide">Hydrava</span>
               <span className="block text-[11px] text-muted-foreground">Community Console</span>
             </span>
           </Link>
 
-          <div className="flex min-w-0 flex-1 items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 sm:px-6 lg:flex lg:justify-between lg:gap-4">
+            <MobileDashboardNavigation guild={guild} />
             <Link
               href="/guilds"
-              className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card px-3 py-2 transition-colors hover:bg-muted"
+              className="flex items-center gap-2 justify-self-center text-base font-extrabold tracking-[0.1em] lg:hidden"
+            >
+              <BrandMark size={34} />
+              HYDRAVA
+            </Link>
+            <Link
+              href="/guilds"
+              className="hidden min-w-0 items-center gap-3 rounded-xl border border-border bg-card px-3 py-2 transition-colors hover:bg-muted lg:flex"
             >
               <GuildIcon guild={guild} size="small" />
               <span className="min-w-0">
@@ -134,9 +63,12 @@ export function GuildDashboardShell({
                 aria-hidden="true"
               />
             </Link>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1 justify-self-end sm:gap-2">
               <ThemeToggle />
-              <SignOutButton />
+              <SignOutButton compact />
+              <div className="hidden lg:block">
+                <SignOutButton />
+              </div>
             </div>
           </div>
         </div>
@@ -157,7 +89,7 @@ export function GuildDashboardShell({
           </div>
 
           <nav className="space-y-6" aria-label="伺服器設定">
-            {navigationGroups.map((group) => (
+            {dashboardNavigationGroups.map((group) => (
               <div key={group.label}>
                 <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
                   {group.label}
@@ -185,20 +117,6 @@ export function GuildDashboardShell({
 
         <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <div className="mx-auto max-w-[1280px] space-y-6">
-            <div className="flex gap-2 overflow-x-auto pb-2 lg:hidden">
-              {navigationGroups.flatMap((group) =>
-                group.items.map((item) => (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    className="shrink-0 rounded-full border border-border bg-card px-3 py-2 text-xs text-muted-foreground"
-                  >
-                    {item.label}
-                  </a>
-                ))
-              )}
-            </div>
-
             <section
               id="overview"
               className="dashboard-hero scroll-mt-28 overflow-hidden rounded-2xl border border-primary/20 p-6 sm:p-8"
@@ -286,5 +204,18 @@ function GuildIcon({ guild, size }: { guild: ManageableGuild; size: "small" | "l
     >
       {guild.name.slice(0, 2).toUpperCase()}
     </span>
+  );
+}
+
+function BrandMark({ size }: { size: number }) {
+  return (
+    <Image
+      src="/brand/hydrava-avatar.png"
+      alt=""
+      width={size}
+      height={size}
+      className="shrink-0 rounded-full object-cover"
+      priority
+    />
   );
 }
