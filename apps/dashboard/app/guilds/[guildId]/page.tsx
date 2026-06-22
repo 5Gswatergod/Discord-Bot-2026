@@ -1,4 +1,5 @@
 import {
+  aiAssistantSettingsSchema,
   achievementSettingsSchema,
   automationRuleInputSchema,
   automationTriggerLabels,
@@ -10,6 +11,7 @@ import {
   inviteTrackingSettingsSchema,
   logEvents,
   levelingSettingsSchema,
+  membershipSettingsSchema,
   moduleKeys,
   moderationSettingsSchema,
   reactionRolePanelInputSchema,
@@ -18,7 +20,9 @@ import {
   starboardSettingsSchema,
   ticketSettingsSchema,
   temporaryVoiceSettingsSchema,
+  web3SettingsSchema,
   welcomeSettingsSchema,
+  type AiAssistantSettings,
   type AchievementSettings,
   type AutomationRuleInput,
   type AutoModRuleInput,
@@ -29,11 +33,13 @@ import {
   type GuildLogEvent,
   type GuildModuleKey,
   type InviteTrackingSettings,
+  type MembershipSettings,
   type ReactionRolePanelInput,
   type ServerStatChannelInput,
   type StarboardSettings,
   type TicketSettings,
-  type TemporaryVoiceSettings
+  type TemporaryVoiceSettings,
+  type Web3Settings
 } from "@guildforge/shared";
 
 import { GuildDashboardShell } from "@/components/guilds/guild-dashboard-shell";
@@ -69,6 +75,15 @@ import { ServerStatsForm } from "@/components/settings/server-stats-form";
 import { StarboardSettingsForm } from "@/components/settings/starboard-settings-form";
 import { TemporaryVoiceForm } from "@/components/settings/temporary-voice-form";
 import { AutomationsForm } from "@/components/settings/automations-form";
+import { AiAssistantForm } from "@/components/settings/ai-assistant-form";
+import {
+  MembershipsForm,
+  type DashboardMembershipEntitlement
+} from "@/components/settings/memberships-form";
+import {
+  Web3SettingsForm,
+  type DashboardWeb3Wallet
+} from "@/components/settings/web3-settings-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireManageableGuild } from "@/lib/guild-access";
 import { prisma } from "@/lib/prisma";
@@ -104,6 +119,9 @@ const auditActionLabels: Record<string, string> = {
   DASHBOARD_SERVER_STATS_UPDATE: "更新伺服器統計頻道",
   DASHBOARD_TEMPORARY_VOICE_UPDATE: "更新臨時語音頻道",
   DASHBOARD_AUTOMATIONS_UPDATE: "更新進階自動化",
+  DASHBOARD_AI_ASSISTANT_UPDATE: "更新 Hydrava AI 助理",
+  DASHBOARD_MEMBERSHIPS_UPDATE: "更新付費會員",
+  DASHBOARD_WEB3_UPDATE: "更新 NFT／Web3 驗證",
   TICKET_CLOSED: "關閉客服單",
   ECONOMY_ADMIN_ADD: "管理員增加餘額",
   ECONOMY_ADMIN_REMOVE: "管理員扣除餘額",
@@ -359,6 +377,32 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         orderBy: {
           createdAt: "desc"
         }
+      },
+      aiAssistantRequests: {
+        take: 500,
+        where: {
+          createdAt: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      },
+      membershipEntitlements: {
+        take: 50,
+        orderBy: {
+          updatedAt: "desc"
+        }
+      },
+      web3Wallets: {
+        take: 50,
+        include: {
+          verifications: true
+        },
+        orderBy: {
+          updatedAt: "desc"
+        }
       }
     }
   });
@@ -590,6 +634,37 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         cooldownSeconds: rule.cooldownSeconds
       })
     ) ?? [];
+  const aiAssistantSettings: AiAssistantSettings = aiAssistantSettingsSchema.parse(
+    moduleConfigMap.get("AI_ASSISTANT")?.settings ?? {}
+  );
+  const membershipSettings: MembershipSettings = membershipSettingsSchema.parse(
+    moduleConfigMap.get("MEMBERSHIPS")?.settings ?? {}
+  );
+  const membershipEntitlements: DashboardMembershipEntitlement[] =
+    dbGuild?.membershipEntitlements.map((entitlement) => ({
+      id: entitlement.id,
+      userId: entitlement.userId,
+      planKey: entitlement.planKey,
+      status: entitlement.status,
+      expiresAt: entitlement.expiresAt?.toISOString() ?? null,
+      lastError: entitlement.lastError
+    })) ?? [];
+  const web3Settings: Web3Settings = web3SettingsSchema.parse(
+    moduleConfigMap.get("WEB3")?.settings ?? {}
+  );
+  const web3Wallets: DashboardWeb3Wallet[] =
+    dbGuild?.web3Wallets.map((wallet) => ({
+      id: wallet.id,
+      userId: wallet.userId,
+      address: wallet.address,
+      verifiedAt: wallet.verifiedAt?.toISOString() ?? null,
+      eligibleCount: wallet.verifications.filter((verification) => verification.eligible).length,
+      errorCount: wallet.verifications.filter((verification) => Boolean(verification.error)).length
+    })) ?? [];
+  const aiRequestCount =
+    dbGuild?.aiAssistantRequests.filter((request) => request.status === "SUCCESS").length ?? 0;
+  const aiFailedCount =
+    dbGuild?.aiAssistantRequests.filter((request) => request.status === "FAILED").length ?? 0;
   const inviteCountMap = new Map<string, number>();
 
   for (const attribution of dbGuild?.inviteAttributions ?? []) {
@@ -1132,6 +1207,61 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
                 )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="ai-assistant" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>Hydrava AI 人物與伺服器助理</CardTitle>
+            <CardDescription>
+              在指定頻道提供可自訂人格的 AI 回覆。模組停用或未設定伺服器端金鑰時不會產生 API 費用。
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AiAssistantForm
+              guildId={params.guildId}
+              settings={aiAssistantSettings}
+              requestCount={aiRequestCount}
+              failedCount={aiFailedCount}
+            />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="memberships" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>付費會員與訂閱權益</CardTitle>
+            <CardDescription>
+              使用簽章 webhook 或管理指令同步會員狀態，自動給予身分組並開放私人頻道。
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MembershipsForm
+              guildId={params.guildId}
+              settings={membershipSettings}
+              entitlements={membershipEntitlements}
+            />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="web3" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>NFT／Web3 驗證與通知</CardTitle>
+            <CardDescription>
+              成員透過錢包簽章證明地址所有權，Hydrava 再從設定的 EVM RPC 驗證持有資格。
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Web3SettingsForm
+              guildId={params.guildId}
+              settings={web3Settings}
+              wallets={web3Wallets}
+            />
           </CardContent>
         </Card>
       </section>

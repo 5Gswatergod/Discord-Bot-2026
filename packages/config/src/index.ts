@@ -22,6 +22,10 @@ export const botEnvSchema = sharedEnvSchema.extend({
   REDDIT_CLIENT_ID: optionalString,
   REDDIT_CLIENT_SECRET: optionalString,
   REDDIT_USER_AGENT: optionalString,
+  AI_API_BASE_URL: optionalString.pipe(z.string().url().optional()),
+  AI_API_KEY: optionalString,
+  AI_MODEL: optionalString,
+  WEB3_RPC_URLS_JSON: optionalString,
   GUILD_SYNC_LIMIT: z.coerce.number().int().positive().default(100)
 });
 
@@ -30,6 +34,7 @@ export const dashboardEnvSchema = sharedEnvSchema.extend({
   DISCORD_CLIENT_SECRET: z.string().min(1),
   DISCORD_BOT_TOKEN: z.string().min(1),
   DISCORD_BOT_PERMISSIONS: z.coerce.number().int().positive().default(8),
+  MEMBERSHIP_WEBHOOK_SECRET: optionalString,
   NEXTAUTH_SECRET: z.string().min(16),
   NEXTAUTH_URL: z.string().url(),
   APP_URL: z.string().url().default("http://localhost:3000")

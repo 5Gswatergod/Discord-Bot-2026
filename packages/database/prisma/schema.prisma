@@ -29,6 +29,9 @@ enum ModuleKey {
   SERVER_STATS
   TEMPORARY_VOICE
   AUTOMATIONS
+  AI_ASSISTANT
+  MEMBERSHIPS
+  WEB3
 }
 
 enum ModerationAction {
@@ -183,6 +186,19 @@ enum AutomationExecutionStatus {
   TEST
 }
 
+enum AiRequestStatus {
+  SUCCESS
+  FAILED
+  BLOCKED
+}
+
+enum MembershipEntitlementStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
 model User {
   id        String   @id
   username  String
@@ -203,43 +219,48 @@ model Guild {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  config                GuildConfig?
-  moduleConfigs         ModuleConfig[]
-  moderationCases       ModerationCase[]
-  warnings              Warning[]
-  autoModRules          AutoModRule[]
-  levelingUsers         LevelingUser[]
-  levelRewards          LevelReward[]
-  welcomeConfig         WelcomeConfig?
-  reactionRolePanels    ReactionRolePanel[]
-  reactionRoleOptions   ReactionRoleOption[]
-  customCommands        CustomCommand[]
-  logConfigs            LogConfig[]
-  giveaways             Giveaway[]
-  giveawayEntries       GiveawayEntry[]
-  polls                 Poll[]
-  pollOptions           PollOption[]
-  pollVotes             PollVote[]
-  socialAlerts          SocialAlert[]
-  socialAlertDeliveries SocialAlertDelivery[]
-  economyAccounts       EconomyAccount[]
-  economyTransactions   EconomyTransaction[]
-  economyShopItems      EconomyShopItem[]
-  economyInventory      EconomyInventoryItem[]
-  tickets               Ticket[]
-  inviteAttributions    InviteAttribution[]
-  embedMessages         EmbedMessage[]
-  reminders             Reminder[]
-  starboardEntries      StarboardEntry[]
-  achievements          Achievement[]
-  achievementAwards     AchievementAward[]
-  memberActivities      MemberActivity[]
-  birthdays             Birthday[]
-  serverStatChannels    ServerStatChannel[]
-  temporaryVoice        TemporaryVoiceChannel[]
-  automationRules       AutomationRule[]
-  automationExecutions  AutomationExecution[]
-  auditLogs             AuditLog[]
+  config                  GuildConfig?
+  moduleConfigs           ModuleConfig[]
+  moderationCases         ModerationCase[]
+  warnings                Warning[]
+  autoModRules            AutoModRule[]
+  levelingUsers           LevelingUser[]
+  levelRewards            LevelReward[]
+  welcomeConfig           WelcomeConfig?
+  reactionRolePanels      ReactionRolePanel[]
+  reactionRoleOptions     ReactionRoleOption[]
+  customCommands          CustomCommand[]
+  logConfigs              LogConfig[]
+  giveaways               Giveaway[]
+  giveawayEntries         GiveawayEntry[]
+  polls                   Poll[]
+  pollOptions             PollOption[]
+  pollVotes               PollVote[]
+  socialAlerts            SocialAlert[]
+  socialAlertDeliveries   SocialAlertDelivery[]
+  economyAccounts         EconomyAccount[]
+  economyTransactions     EconomyTransaction[]
+  economyShopItems        EconomyShopItem[]
+  economyInventory        EconomyInventoryItem[]
+  tickets                 Ticket[]
+  inviteAttributions      InviteAttribution[]
+  embedMessages           EmbedMessage[]
+  reminders               Reminder[]
+  starboardEntries        StarboardEntry[]
+  achievements            Achievement[]
+  achievementAwards       AchievementAward[]
+  memberActivities        MemberActivity[]
+  birthdays               Birthday[]
+  serverStatChannels      ServerStatChannel[]
+  temporaryVoice          TemporaryVoiceChannel[]
+  automationRules         AutomationRule[]
+  automationExecutions    AutomationExecution[]
+  aiAssistantRequests     AiAssistantRequest[]
+  membershipEntitlements  MembershipEntitlement[]
+  membershipWebhookEvents MembershipWebhookEvent[]
+  web3Wallets             Web3Wallet[]
+  web3Verifications       Web3Verification[]
+  auditLogs               AuditLog[]
 }
 
 model GuildConfig {
@@ -909,6 +930,100 @@ model AutomationExecution {
   @@unique([ruleId, eventKey])
   @@index([guildId, createdAt])
   @@index([ruleId, createdAt])
+}
+
+model AiAssistantRequest {
+  id          String          @id @default(cuid())
+  guildId     String
+  userId      String
+  channelId   String
+  messageId   String?
+  status      AiRequestStatus
+  model       String?
+  inputChars  Int             @default(0)
+  outputChars Int             @default(0)
+  error       String?
+  createdAt   DateTime        @default(now())
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, messageId])
+  @@index([guildId, createdAt])
+  @@index([guildId, userId, createdAt])
+}
+
+model MembershipEntitlement {
+  id            String                      @id @default(cuid())
+  guildId       String
+  userId        String
+  planKey       String
+  status        MembershipEntitlementStatus
+  source        String
+  externalId    String?
+  expiresAt     DateTime?
+  lastEventAt   DateTime                    @default(now())
+  lastSyncedAt  DateTime                    @default(now())
+  roleAppliedAt DateTime?
+  lastError     String?
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, userId, planKey])
+  @@unique([guildId, externalId])
+  @@index([guildId, status, expiresAt])
+}
+
+model MembershipWebhookEvent {
+  id         String   @id @default(cuid())
+  guildId    String
+  eventId    String
+  receivedAt DateTime @default(now())
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, eventId])
+  @@index([guildId, receivedAt])
+}
+
+model Web3Wallet {
+  id                 String    @id @default(cuid())
+  guildId            String
+  userId             String
+  address            String
+  challenge          String
+  challengeExpiresAt DateTime
+  verifiedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  guild         Guild              @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  verifications Web3Verification[]
+
+  @@unique([guildId, userId])
+  @@unique([guildId, address])
+  @@index([guildId, verifiedAt])
+}
+
+model Web3Verification {
+  id            String    @id @default(cuid())
+  guildId       String
+  walletId      String
+  collectionKey String
+  balance       String    @default("0")
+  eligible      Boolean   @default(false)
+  lastCheckedAt DateTime  @default(now())
+  roleAppliedAt DateTime?
+  error         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  guild  Guild      @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  wallet Web3Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@unique([walletId, collectionKey])
+  @@index([guildId, eligible, lastCheckedAt])
 }
 
 model AuditLog {

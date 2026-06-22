@@ -17,6 +17,8 @@ import { achievementCommands } from "./achievements/achievements";
 import { birthdayCommands } from "./birthdays/birthday";
 import { serverStatsCommands } from "./server-stats/server-stats";
 import { temporaryVoiceCommands } from "./temporary-voice/voice";
+import { membershipCommands } from "./memberships/membership";
+import { web3Commands } from "./web3/wallet";
 import type { BotCommand } from "./types";
 
 export const commands = [
@@ -38,7 +40,9 @@ export const commands = [
   ...achievementCommands,
   ...birthdayCommands,
   ...serverStatsCommands,
-  ...temporaryVoiceCommands
+  ...temporaryVoiceCommands,
+  ...membershipCommands,
+  ...web3Commands
 ] satisfies BotCommand[];
 
 export const commandMap = new Map(commands.map((command) => [command.data.name, command]));

@@ -21,7 +21,10 @@ export const moduleKeys = [
   "BIRTHDAYS",
   "SERVER_STATS",
   "TEMPORARY_VOICE",
-  "AUTOMATIONS"
+  "AUTOMATIONS",
+  "AI_ASSISTANT",
+  "MEMBERSHIPS",
+  "WEB3"
 ] as const;
 
 export type GuildModuleKey = (typeof moduleKeys)[number];
@@ -47,7 +50,10 @@ export const moduleLabels: Record<GuildModuleKey, string> = {
   BIRTHDAYS: "生日",
   SERVER_STATS: "統計頻道",
   TEMPORARY_VOICE: "臨時語音頻道",
-  AUTOMATIONS: "進階自動化"
+  AUTOMATIONS: "進階自動化",
+  AI_ASSISTANT: "Hydrava AI 助理",
+  MEMBERSHIPS: "付費會員",
+  WEB3: "NFT／Web3 驗證"
 };
 
 export const moduleDescriptions: Record<GuildModuleKey, string> = {
@@ -71,7 +77,10 @@ export const moduleDescriptions: Record<GuildModuleKey, string> = {
   BIRTHDAYS: "讓成員登記生日，並在指定頻道自動送上祝福。",
   SERVER_STATS: "以 Discord 頻道名稱即時顯示成員、身分組與頻道統計。",
   TEMPORARY_VOICE: "成員加入大廳後自動建立私人臨時語音頻道。",
-  AUTOMATIONS: "使用事件、條件與動作建立可排序、可測試的自動化工作流程。"
+  AUTOMATIONS: "使用事件、條件與動作建立可排序、可測試的自動化工作流程。",
+  AI_ASSISTANT: "在指定頻道提供可控成本、可自訂人格的伺服器 AI 助理。",
+  MEMBERSHIPS: "同步付費權益、訂閱身分組與私人頻道存取權。",
+  WEB3: "驗證 EVM 錢包與 NFT 持有資格，自動同步身分組及通知。"
 };
 
 export const discordPermissionBits = {
@@ -907,6 +916,165 @@ export const temporaryVoiceSettingsSchema = z.object({
 });
 
 export type TemporaryVoiceSettings = z.infer<typeof temporaryVoiceSettingsSchema>;
+
+const integrationKeySchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(32)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+export const aiAssistantSettingsSchema = z.object({
+  personaName: z.string().trim().min(1).max(80).default("Hydrava"),
+  systemPrompt: z
+    .string()
+    .trim()
+    .min(20)
+    .max(4_000)
+    .default("你是這個 Discord 伺服器的 Hydrava AI 助理。請使用繁體中文，回答要友善、準確且簡潔。"),
+  channelIds: z.array(snowflakeSchema).max(20).default([]),
+  mentionOnly: z.boolean().default(true),
+  maxContextMessages: z.coerce.number().int().min(1).max(20).default(8),
+  temperature: z.coerce.number().min(0).max(2).default(0.7),
+  dailyRequestLimit: z.coerce.number().int().min(1).max(1_000).default(100),
+  maxResponseCharacters: z.coerce.number().int().min(100).max(4_000).default(1_800)
+});
+
+export type AiAssistantSettings = z.infer<typeof aiAssistantSettingsSchema>;
+
+export const membershipPlanInputSchema = z.object({
+  key: integrationKeySchema,
+  name: z.string().trim().min(1).max(80),
+  roleId: snowflakeSchema,
+  privateChannelIds: z.array(snowflakeSchema).max(20).default([]),
+  enabled: z.boolean().default(true)
+});
+
+export type MembershipPlanInput = z.infer<typeof membershipPlanInputSchema>;
+
+export const membershipSettingsSchema = z
+  .object({
+    announcementChannelId: optionalSnowflakeSchema.default(null),
+    gracePeriodDays: z.coerce.number().int().min(0).max(30).default(3),
+    removeRoleOnExpiry: z.boolean().default(true),
+    plans: z.array(membershipPlanInputSchema).max(20).default([])
+  })
+  .superRefine((settings, context) => {
+    const keys = new Set<string>();
+
+    settings.plans.forEach((plan, index) => {
+      if (keys.has(plan.key)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "會員方案代碼不可重複",
+          path: ["plans", index, "key"]
+        });
+      }
+      keys.add(plan.key);
+    });
+  });
+
+export type MembershipSettings = z.infer<typeof membershipSettingsSchema>;
+
+export const membershipEntitlementStatuses = [
+  "ACTIVE",
+  "PAST_DUE",
+  "CANCELED",
+  "EXPIRED"
+] as const;
+
+export const membershipWebhookPayloadSchema = z.object({
+  eventId: z.string().trim().min(1).max(200),
+  userId: snowflakeSchema,
+  planKey: integrationKeySchema,
+  status: z.enum(membershipEntitlementStatuses),
+  externalId: z.string().trim().min(1).max(200).nullable().default(null),
+  occurredAt: z.string().datetime(),
+  expiresAt: z.string().datetime().nullable().default(null)
+});
+
+export type MembershipWebhookPayload = z.infer<typeof membershipWebhookPayloadSchema>;
+
+export const web3TokenStandards = ["ERC721", "ERC1155"] as const;
+
+export const web3CollectionInputSchema = z
+  .object({
+    key: integrationKeySchema,
+    name: z.string().trim().min(1).max(80),
+    chainId: z.coerce.number().int().positive(),
+    contractAddress: z.string().trim().regex(/^0x[a-fA-F0-9]{40}$/),
+    standard: z.enum(web3TokenStandards),
+    tokenId: z.string().trim().regex(/^\d+$/).nullable().default(null),
+    minimumBalance: z.coerce.number().int().min(1).max(1_000_000).default(1),
+    roleId: snowflakeSchema,
+    privateChannelIds: z.array(snowflakeSchema).max(20).default([]),
+    enabled: z.boolean().default(true)
+  })
+  .superRefine((collection, context) => {
+    if (collection.standard === "ERC1155" && !collection.tokenId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ERC-1155 收藏必須指定 Token ID",
+        path: ["tokenId"]
+      });
+    }
+  });
+
+export type Web3CollectionInput = z.infer<typeof web3CollectionInputSchema>;
+
+export const web3SettingsSchema = z
+  .object({
+    announcementChannelId: optionalSnowflakeSchema.default(null),
+    verificationMessage: z
+      .string()
+      .trim()
+      .min(1)
+      .max(1_000)
+      .default("✅ {user} 已通過 {collection} 持有資格驗證。"),
+    recheckHours: z.coerce.number().int().min(1).max(168).default(24),
+    collections: z.array(web3CollectionInputSchema).max(20).default([])
+  })
+  .superRefine((settings, context) => {
+    const keys = new Set<string>();
+
+    settings.collections.forEach((collection, index) => {
+      if (keys.has(collection.key)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Web3 收藏代碼不可重複",
+          path: ["collections", index, "key"]
+        });
+      }
+      keys.add(collection.key);
+    });
+  });
+
+export type Web3Settings = z.infer<typeof web3SettingsSchema>;
+
+export const web3WalletAddressSchema = z.string().trim().regex(/^0x[a-fA-F0-9]{40}$/);
+export const web3WalletSignatureSchema = z.string().trim().regex(/^0x[a-fA-F0-9]{130}$/);
+
+export function parseWeb3RpcUrls(value?: string) {
+  if (!value) {
+    return new Map<number, string>();
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    return new Map(
+      Object.entries(parsed)
+        .filter(
+          (entry): entry is [string, string] =>
+            /^\d+$/.test(entry[0]) &&
+            typeof entry[1] === "string" &&
+            /^https?:\/\//.test(entry[1])
+        )
+        .map(([chainId, url]) => [Number(chainId), url])
+    );
+  } catch {
+    return new Map<number, string>();
+  }
+}
 
 export const automationTriggers = [
   "MESSAGE_CREATE",

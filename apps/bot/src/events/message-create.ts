@@ -7,6 +7,7 @@ import { handleEconomyMessage } from "../lib/economy/economy";
 import { handleLevelingMessage } from "../lib/leveling/leveling";
 import { recordMessageActivity } from "../lib/achievements/achievements";
 import { handleAutomationMessage } from "../lib/automations/automations";
+import { handleAiAssistantMessage } from "../lib/ai-assistant/ai-assistant";
 
 export async function handleMessageCreate(message: Message, context: CommandContext) {
   if (!message.inGuild() || message.author.bot) {
@@ -36,6 +37,14 @@ export async function handleMessageCreate(message: Message, context: CommandCont
 
   await handleAutomationMessage(message, context).catch((error) => {
     context.logger.warn("Failed to process message automation", {
+      guildId: message.guildId,
+      messageId: message.id,
+      error
+    });
+  });
+
+  await handleAiAssistantMessage(message, context).catch((error) => {
+    context.logger.warn("Failed to process AI assistant message", {
       guildId: message.guildId,
       messageId: message.id,
       error

@@ -34,7 +34,8 @@ import { handleStarboardReaction } from "./lib/starboard/starboard";
 import { checkBirthdays } from "./lib/birthdays/birthdays";
 import { syncServerStats } from "./lib/server-stats/server-stats";
 import { handleAutomationReaction } from "./lib/automations/automations";
-import { reconcileTemporaryVoiceChannels } from "./lib/temporary-voice/temporary-voice";
+import { syncMembershipEntitlements } from "./lib/memberships/memberships";
+import { verifyDueWeb3Wallets } from "./lib/web3/web3";
 
 async function main() {
   const client = createBotClient();
@@ -59,11 +60,14 @@ async function main() {
   };
 
   client.once(Events.ClientReady, (readyClient) => {
-    void handleReady(readyClient, context).then(() =>
-      reconcileTemporaryVoiceChannels(context).catch((error) => {
-        logger.warn("Failed to run initial temporary voice reconciliation", { error });
-      })
-    );
+    void handleReady(readyClient, context).then(async () => {
+      await syncMembershipEntitlements(context).catch((error) => {
+        logger.warn("Failed to run initial membership sync", { error });
+      });
+      await verifyDueWeb3Wallets(context).catch((error) => {
+        logger.warn("Failed to run initial Web3 verification sync", { error });
+      });
+    });
   });
 
   client.on(Events.GuildCreate, (guild) => {
@@ -194,11 +198,16 @@ async function main() {
       logger.warn("Failed to run server statistics scheduler", { error });
     });
   }, 10 * 60_000);
-  const temporaryVoiceInterval = setInterval(() => {
-    void reconcileTemporaryVoiceChannels(context).catch((error) => {
-      logger.warn("Failed to reconcile temporary voice channels", { error });
+  const membershipInterval = setInterval(() => {
+    void syncMembershipEntitlements(context).catch((error) => {
+      logger.warn("Failed to run membership scheduler", { error });
     });
-  }, 2 * 60_000);
+  }, 5 * 60_000);
+  const web3Interval = setInterval(() => {
+    void verifyDueWeb3Wallets(context).catch((error) => {
+      logger.warn("Failed to run Web3 verification scheduler", { error });
+    });
+  }, 60 * 60_000);
 
   void syncTicketPanels(context);
   void syncEmbedMessages(context);
@@ -223,7 +232,8 @@ async function main() {
     clearInterval(reminderInterval);
     clearInterval(birthdayInterval);
     clearInterval(serverStatsInterval);
-    clearInterval(temporaryVoiceInterval);
+    clearInterval(membershipInterval);
+    clearInterval(web3Interval);
     redis?.disconnect();
     await prisma.$disconnect();
     process.exit(0);

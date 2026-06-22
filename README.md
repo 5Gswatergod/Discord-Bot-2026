@@ -35,6 +35,9 @@ This repository currently implements Phases 1 through 5 from `Task.md`:
 - Dry-run testing, persistent execution logs, cooldowns, event deduplication, and loop prevention
 - Notification adapters for TikTok, X, Bluesky, Reddit, Instagram, Kick, and Podcast sources
 - Shared notification templates, role/everyone mentions, persistent delivery deduplication, retry backoff, and hourly rate limits
+- Optional Hydrava AI personas with channel scoping, mention-only mode, daily cost limits, and provider-neutral chat-completions configuration
+- Membership plans with signed entitlement webhooks, manual grants, subscription roles, private-channel access, expiry, and grace periods
+- EVM wallet signature verification, ERC-721/ERC-1155 balance checks, role synchronization, private channels, and verification notifications
 - Oracle Cloud production deployment with Docker, PostgreSQL, Redis, Caddy HTTPS, health checks, and persistent volumes
 
 ## Stack
@@ -95,6 +98,19 @@ Reddit Data API notifications are optional. Configure an approved Reddit OAuth a
 - `REDDIT_CLIENT_ID`
 - `REDDIT_CLIENT_SECRET`
 - `REDDIT_USER_AGENT`
+
+Batch 5 integrations are optional and remain inactive without their environment values:
+
+- AI: `AI_API_BASE_URL`, `AI_API_KEY`, `AI_MODEL`
+- Membership webhook signing: `MEMBERSHIP_WEBHOOK_SECRET`
+- Web3 RPC mapping: `WEB3_RPC_URLS_JSON`, for example `{"1":"https://...","137":"https://..."}`
+
+Membership providers send JSON to `/api/webhooks/memberships/{guildId}` with an
+`x-hydrava-signature: sha256=<hex>` HMAC generated from the raw request body and
+`MEMBERSHIP_WEBHOOK_SECRET`. Payloads include `eventId`, `occurredAt`, Discord `userId`,
+Dashboard `planKey`, `status`, optional `externalId`, and optional `expiresAt`. Hydrava rejects
+invalid signatures, ignores duplicate event IDs, and prevents older events from overwriting newer
+subscription state.
 
 For local development, keep:
 
@@ -206,6 +222,16 @@ Current community engagement commands:
 - `/voice rename`
 - `/voice limit`
 
+Current optional integration commands:
+
+- `/membership grant`
+- `/membership revoke`
+- `/membership status`
+- `/wallet challenge`
+- `/wallet verify`
+- `/wallet status`
+- `/wallet unlink`
+
 ## Development
 
 Run both apps:
@@ -298,6 +324,9 @@ The server overview includes:
 - Reminder settings: channel, next run time, message, recurring interval, and enablement
 - Starboard settings: destination channel, emoji, threshold, ignored channels, and cleanup behavior
 - Achievement settings: trigger, threshold, role reward, announcement channel, and message template
+- Hydrava AI settings: persona, system prompt, allowed channels, mention-only mode, context size, response limit, temperature, and daily request cap
+- Membership settings: plans, subscription roles, private channels, expiry behavior, announcement channel, signed webhook synchronization, and manual grants
+- NFT/Web3 settings: EVM chain, contract, ERC-721/ERC-1155 token rules, minimum balance, verification role, private channels, recheck interval, and notifications
 - Birthday settings: announcement channel, message template, timezone, and upcoming-day window
 - Server Stats settings: statistic type, channel name template, category, and enablement
 - Temporary Voice settings: join lobby, category, name template, bitrate, and user limit
