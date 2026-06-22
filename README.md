@@ -29,6 +29,7 @@ This repository currently implements Phases 1 through 5 from `Task.md`:
 - Member birthdays with timezone-aware announcements and an upcoming birthday command
 - Auto-updating server statistic channels for members, bots, roles, and channel counts
 - Join-to-create temporary voice channels with owner rename and user-limit controls
+- Lavalink-powered music playback with YouTube search, Spotify metadata matching, queues, DJ controls, voting, and dashboard status
 - Advanced automation rules for messages, reactions, member joins, and role changes
 - Automation conditions for channels, roles, keywords, weekdays, time ranges, and timezones
 - Ordered automation actions for messages, roles, message deletion, timeouts, kicks, and bans
@@ -38,7 +39,7 @@ This repository currently implements Phases 1 through 5 from `Task.md`:
 - Optional Hydrava AI personas with channel scoping, mention-only mode, daily cost limits, and provider-neutral chat-completions configuration
 - Membership plans with signed entitlement webhooks, manual grants, subscription roles, private-channel access, expiry, and grace periods
 - EVM wallet signature verification, ERC-721/ERC-1155 balance checks, role synchronization, private channels, and verification notifications
-- Oracle Cloud production deployment with Docker, PostgreSQL, Redis, Caddy HTTPS, health checks, and persistent volumes
+- Oracle Cloud production deployment with Docker, PostgreSQL, Redis, Lavalink, Caddy HTTPS, health checks, and persistent volumes
 
 ## Stack
 
@@ -48,6 +49,7 @@ This repository currently implements Phases 1 through 5 from `Task.md`:
 - NextAuth.js with Discord OAuth2
 - PostgreSQL and Prisma ORM
 - Redis for cooldown/cache-backed modules
+- Lavalink 4.2.1 with YouTube Source and LavaSrc plugins
 - Tailwind CSS with shadcn-style local UI primitives
 - pnpm workspace
 
@@ -105,6 +107,16 @@ Batch 5 integrations are optional and remain inactive without their environment 
 - Membership webhook signing: `MEMBERSHIP_WEBHOOK_SECRET`
 - Web3 RPC mapping: `WEB3_RPC_URLS_JSON`, for example `{"1":"https://...","137":"https://..."}`
 
+Music playback requires:
+
+- `LAVALINK_PASSWORD`
+- `LAVALINK_HOST` and `LAVALINK_PORT` when Lavalink is not running through this repository's Compose stack
+
+Spotify links are optional. YouTube remains available without these values:
+
+- `SPOTIFY_CLIENT_ID`
+- `SPOTIFY_CLIENT_SECRET`
+
 Membership providers send JSON to `/api/webhooks/memberships/{guildId}` with an
 `x-hydrava-signature: sha256=<hex>` HMAC generated from the raw request body and
 `MEMBERSHIP_WEBHOOK_SECRET`. Payloads include `eventId`, `occurredAt`, Discord `userId`,
@@ -126,7 +138,7 @@ APP_URL="http://localhost:3000"
 Start services:
 
 ```bash
-docker compose up -d postgres redis
+docker compose up -d postgres redis lavalink
 ```
 
 Generate Prisma Client and push the schema:
@@ -222,6 +234,20 @@ Current community engagement commands:
 - `/voice rename`
 - `/voice limit`
 
+Current music commands:
+
+- `/play`
+- `/queue`
+- `/nowplaying`
+- `/pause`
+- `/resume`
+- `/skip`
+- `/remove`
+- `/shuffle`
+- `/loop`
+- `/volume`
+- `/stop`
+
 Current optional integration commands:
 
 - `/membership grant`
@@ -265,6 +291,7 @@ The compose file starts:
 
 - `postgres`
 - `redis`
+- `lavalink`
 - `bot`
 - `dashboard`
 
@@ -280,7 +307,7 @@ The recommended no-monthly-cost deployment uses an Oracle Cloud Always Free Comp
 - Production Compose stack: [`docker-compose.oracle.yml`](./docker-compose.oracle.yml)
 - Automatic HTTPS proxy: [`Caddyfile`](./Caddyfile)
 
-The Oracle stack runs Dashboard, Bot, PostgreSQL, Redis, and Caddy on one VM. PostgreSQL and Redis remain private inside the Docker network, while Caddy exposes HTTPS on ports 80 and 443.
+The Oracle stack runs Dashboard, Bot, PostgreSQL, Redis, Lavalink, and Caddy on one VM. PostgreSQL, Redis, and Lavalink remain private inside the Docker network, while Caddy exposes HTTPS on ports 80 and 443.
 
 Production images are built on GitHub-hosted runners and deployed through the manually approved
 `Deploy Production` workflow. The VM only pulls immutable images, applies the Prisma schema, and
@@ -330,6 +357,7 @@ The server overview includes:
 - Birthday settings: announcement channel, message template, timezone, and upcoming-day window
 - Server Stats settings: statistic type, channel name template, category, and enablement
 - Temporary Voice settings: join lobby, category, name template, bitrate, and user limit
+- Music settings: DJ role, request and announcement channels, volume, queue limits, playlist limits, live streams, automatic disconnect timers, and live player status
 - Automation settings: ordered triggers, conditions, actions, cooldowns, stop-processing behavior, dry-run testing, and execution history
 
 Supported template variables:

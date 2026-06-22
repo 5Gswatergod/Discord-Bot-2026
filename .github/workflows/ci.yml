@@ -89,3 +89,44 @@ jobs:
           tags: ${{ matrix.image }}:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha,scope=${{ matrix.target }}
           cache-to: type=gha,mode=max,scope=${{ matrix.target }},ignore-error=true
+
+  lavalink-smoke:
+    name: Lavalink Plugin Smoke Test
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      LAVALINK_PASSWORD: ci-lavalink-password
+      SPOTIFY_CLIENT_ID: ""
+      SPOTIFY_CLIENT_SECRET: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Start Lavalink
+        run: docker compose up -d lavalink
+
+      - name: Wait for health and verify plugins
+        run: |
+          set -euo pipefail
+          container_id="$(docker compose ps -q lavalink)"
+          for _ in {1..36}; do
+            health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id")"
+            if [[ "$health" == "healthy" ]]; then
+              break
+            fi
+            if [[ "$health" == "unhealthy" ]]; then
+              docker compose logs lavalink
+              exit 1
+            fi
+            sleep 5
+          done
+          test "$(docker inspect --format '{{.State.Health.Status}}' "$container_id")" = "healthy"
+          docker compose logs lavalink | tee /tmp/lavalink.log
+          grep -Eiq 'youtube-plugin|youtube source|youtube.*plugin' /tmp/lavalink.log
+          grep -Eiq 'lavasrc|lava src' /tmp/lavalink.log
+
+      - name: Lavalink logs
+        if: always()
+        run: docker compose logs --tail=200 lavalink

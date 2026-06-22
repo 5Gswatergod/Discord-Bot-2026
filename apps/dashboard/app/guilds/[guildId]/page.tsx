@@ -11,6 +11,7 @@ import {
   inviteTrackingSettingsSchema,
   logEvents,
   levelingSettingsSchema,
+  musicSettingsSchema,
   membershipSettingsSchema,
   moduleKeys,
   moderationSettingsSchema,
@@ -34,6 +35,7 @@ import {
   type GuildModuleKey,
   type InviteTrackingSettings,
   type MembershipSettings,
+  type MusicSettings,
   type ReactionRolePanelInput,
   type ServerStatChannelInput,
   type StarboardSettings,
@@ -74,6 +76,7 @@ import {
 import { ServerStatsForm } from "@/components/settings/server-stats-form";
 import { StarboardSettingsForm } from "@/components/settings/starboard-settings-form";
 import { TemporaryVoiceForm } from "@/components/settings/temporary-voice-form";
+import { MusicSettingsForm } from "@/components/settings/music-settings-form";
 import { AutomationsForm } from "@/components/settings/automations-form";
 import { AiAssistantForm } from "@/components/settings/ai-assistant-form";
 import {
@@ -118,6 +121,7 @@ const auditActionLabels: Record<string, string> = {
   DASHBOARD_BIRTHDAYS_UPDATE: "更新生日祝福",
   DASHBOARD_SERVER_STATS_UPDATE: "更新伺服器統計頻道",
   DASHBOARD_TEMPORARY_VOICE_UPDATE: "更新臨時語音頻道",
+  DASHBOARD_MUSIC_UPDATE: "更新音樂播放器",
   DASHBOARD_AUTOMATIONS_UPDATE: "更新進階自動化",
   DASHBOARD_AI_ASSISTANT_UPDATE: "更新 Hydrava AI 助理",
   DASHBOARD_MEMBERSHIPS_UPDATE: "更新付費會員",
@@ -627,6 +631,9 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
     ) ?? [];
   const temporaryVoiceSettings: TemporaryVoiceSettings = temporaryVoiceSettingsSchema.parse(
     moduleConfigMap.get("TEMPORARY_VOICE")?.settings ?? {}
+  );
+  const musicSettings: MusicSettings = musicSettingsSchema.parse(
+    moduleConfigMap.get("MUSIC")?.settings ?? {}
   );
   const automationRules: AutomationRuleInput[] =
     dbGuild?.automationRules.map((rule) =>
@@ -1165,6 +1172,20 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
               settings={temporaryVoiceSettings}
               activeCount={dbGuild?.temporaryVoice.length ?? 0}
             />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="music" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>音樂播放器</CardTitle>
+            <CardDescription>
+              使用 YouTube 搜尋或連結播放音樂；設定 Spotify 後也能解析歌曲、專輯與播放清單。
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MusicSettingsForm guildId={params.guildId} settings={musicSettings} />
           </CardContent>
         </Card>
       </section>

@@ -15,6 +15,7 @@ import {
   Medal,
   MessagesSquare,
   Mic2,
+  Music2,
   ScrollText,
   Settings2,
   ShieldCheck,
@@ -80,6 +81,7 @@ export const dashboardNavigationGroups: readonly DashboardNavigationGroup[] = [
       { href: "#reminders", label: "提醒事項", icon: CalendarClock },
       { href: "#server-stats", label: "伺服器統計", icon: BarChart3 },
       { href: "#temporary-voice", label: "臨時語音", icon: Mic2 },
+      { href: "#music", label: "音樂播放器", icon: Music2 },
       { href: "#automations", label: "進階自動化", icon: Workflow }
     ]
   },

@@ -274,6 +274,10 @@ NEXTAUTH_SECRET="使用 openssl 產生"
 APP_DOMAIN="bot.example.com"
 
 POSTGRES_PASSWORD="使用 openssl 產生"
+LAVALINK_PASSWORD="使用 openssl 產生"
+LAVALINK_MAX_HEAP_MB="384"
+SPOTIFY_CLIENT_ID=""
+SPOTIFY_CLIENT_SECRET=""
 
 TWITCH_CLIENT_ID=""
 TWITCH_ACCESS_TOKEN=""
@@ -286,7 +290,7 @@ GUILD_SYNC_LIMIT="100"
 openssl rand -hex 32
 ```
 
-分別執行兩次，一個填入 `NEXTAUTH_SECRET`，另一個填入 `POSTGRES_PASSWORD`。
+分別產生 `NEXTAUTH_SECRET`、`POSTGRES_PASSWORD` 與 `LAVALINK_PASSWORD`。
 
 `POSTGRES_PASSWORD` 建議使用英文字母與數字組成的 hex 值，避免 DATABASE URL 需要額外 URL encoding。
 
@@ -295,6 +299,8 @@ Oracle production Compose 會自動設定：
 ```env
 DATABASE_URL=postgresql://guildforge:...@postgres:5432/guildforge
 REDIS_URL=redis://redis:6379
+LAVALINK_HOST=lavalink
+LAVALINK_PORT=2333
 NEXTAUTH_URL=https://APP_DOMAIN
 APP_URL=https://APP_DOMAIN
 ```

@@ -19,6 +19,7 @@ import { serverStatsCommands } from "./server-stats/server-stats";
 import { temporaryVoiceCommands } from "./temporary-voice/voice";
 import { membershipCommands } from "./memberships/membership";
 import { web3Commands } from "./web3/wallet";
+import { musicCommands } from "./music/music";
 import type { BotCommand } from "./types";
 
 export const commands = [
@@ -41,6 +42,7 @@ export const commands = [
   ...birthdayCommands,
   ...serverStatsCommands,
   ...temporaryVoiceCommands,
+  ...musicCommands,
   ...membershipCommands,
   ...web3Commands
 ] satisfies BotCommand[];

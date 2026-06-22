@@ -45,6 +45,7 @@ Next.js、TypeScript 或 Prisma Client 編譯，只負責拉取 image、同步 s
 
    兩邊的 SHA256 fingerprint 必須完全相同。不要直接信任未核對的
    `ssh-keyscan` 結果，否則會失去 strict host verification 的意義。
+
 7. 在 repository 的 `Settings > Environments` 建立 `production` environment。
 8. 建議為 `production` 設定 required reviewer，讓每次部署都必須人工批准。
 9. 在 `production` environment 建立以下 secrets：
@@ -78,13 +79,14 @@ Workflow 使用固定路徑 `/home/ubuntu/Discord-Bot-2026`。VM 上的 reposito
    `sha-<workflow-selected-commit>`。
 4. GitHub approval 通過後，workflow 會：
    - 在 VM 執行 fast-forward-only `git pull`，取得最新版 Compose 與部署腳本。
-   - 匿名拉取 Bot 與 Dashboard immutable images。
+   - 匿名拉取 Bot、Dashboard immutable images 與固定版本 Lavalink image。
+   - 啟動 Lavalink 並等待音訊節點 health check。
    - 使用新 Dashboard image 執行 `db:push`。
    - 只更新 Dashboard，等待 health check。
    - 只更新 Bot，確認 30 秒內保持 running 且未重啟。
    - 將成功 tag 原子寫入 VM 的 `.deploy.env`。
 
-Caddy、PostgreSQL 與 Redis 不會重啟。`.deploy.env` 和 `.deploy.lock` 已加入
+Caddy、PostgreSQL 與 Redis 不會重啟；Lavalink 會依固定版本設定重新建立。`.deploy.env` 和 `.deploy.lock` 已加入
 `.gitignore`。
 
 ## 回滾與失敗處理
@@ -135,7 +137,7 @@ docker compose -f docker-compose.oracle.yml up -d --no-deps --no-build --pull ne
 cat .deploy.env
 docker compose -f docker-compose.oracle.yml ps
 curl --fail --silent --show-error https://YOUR_DOMAIN/api/health
-docker compose -f docker-compose.oracle.yml logs --tail=100 dashboard bot
+docker compose -f docker-compose.oracle.yml logs --tail=100 dashboard bot lavalink
 ```
 
-正常狀態下 Dashboard、PostgreSQL、Redis 顯示 healthy，Bot 與 Caddy 顯示 running。
+正常狀態下 Dashboard、PostgreSQL、Redis、Lavalink 顯示 healthy，Bot 與 Caddy 顯示 running。

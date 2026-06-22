@@ -22,6 +22,7 @@ export const moduleKeys = [
   "SERVER_STATS",
   "TEMPORARY_VOICE",
   "AUTOMATIONS",
+  "MUSIC",
   "AI_ASSISTANT",
   "MEMBERSHIPS",
   "WEB3"
@@ -51,6 +52,7 @@ export const moduleLabels: Record<GuildModuleKey, string> = {
   SERVER_STATS: "統計頻道",
   TEMPORARY_VOICE: "臨時語音頻道",
   AUTOMATIONS: "進階自動化",
+  MUSIC: "音樂播放器",
   AI_ASSISTANT: "Hydrava AI 助理",
   MEMBERSHIPS: "付費會員",
   WEB3: "NFT／Web3 驗證"
@@ -78,6 +80,7 @@ export const moduleDescriptions: Record<GuildModuleKey, string> = {
   SERVER_STATS: "以 Discord 頻道名稱即時顯示成員、身分組與頻道統計。",
   TEMPORARY_VOICE: "成員加入大廳後自動建立私人臨時語音頻道。",
   AUTOMATIONS: "使用事件、條件與動作建立可排序、可測試的自動化工作流程。",
+  MUSIC: "在語音頻道播放 YouTube 音樂，並支援 Spotify 連結配對與共用佇列。",
   AI_ASSISTANT: "在指定頻道提供可控成本、可自訂人格的伺服器 AI 助理。",
   MEMBERSHIPS: "同步付費權益、訂閱身分組與私人頻道存取權。",
   WEB3: "驗證 EVM 錢包與 NFT 持有資格，自動同步身分組及通知。"
@@ -111,6 +114,66 @@ export const moduleToggleSchema = z.object({
   module: z.enum(moduleKeys),
   enabled: z.boolean()
 });
+
+export const musicSettingsSchema = z
+  .object({
+    djRoleId: snowflakeSchema.nullable().default(null),
+    requestChannelIds: z.array(snowflakeSchema).max(50).default([]),
+    announcementChannelId: snowflakeSchema.nullable().default(null),
+    defaultVolume: z.coerce.number().int().min(1).max(100).default(60),
+    maxVolume: z.coerce.number().int().min(1).max(100).default(100),
+    emptyChannelTimeoutSeconds: z.coerce.number().int().min(30).max(900).default(120),
+    idleTimeoutSeconds: z.coerce.number().int().min(30).max(1_800).default(300),
+    maxTracksPerUser: z.coerce.number().int().min(1).max(100).default(25),
+    maxQueueSize: z.coerce.number().int().min(10).max(500).default(100),
+    playlistTrackLimit: z.coerce.number().int().min(1).max(200).default(50),
+    allowLiveStreams: z.boolean().default(true)
+  })
+  .refine(
+    (settings) => new Set(settings.requestChannelIds).size === settings.requestChannelIds.length,
+    {
+      message: "點歌頻道不可重複。",
+      path: ["requestChannelIds"]
+    }
+  )
+  .refine((settings) => settings.defaultVolume <= settings.maxVolume, {
+    message: "預設音量不可高於最大音量。",
+    path: ["defaultVolume"]
+  });
+
+export type MusicSettings = z.infer<typeof musicSettingsSchema>;
+
+export const musicLoopModes = ["off", "track", "queue"] as const;
+export type MusicLoopMode = (typeof musicLoopModes)[number];
+
+export const musicTrackStatusSchema = z.object({
+  title: z.string(),
+  author: z.string(),
+  uri: z.string().url().nullable(),
+  artworkUrl: z.string().url().nullable(),
+  durationMs: z.number().int().nonnegative(),
+  isStream: z.boolean(),
+  requesterId: snowflakeSchema.nullable()
+});
+
+export const musicStatusSchema = z.object({
+  available: z.boolean(),
+  redisAvailable: z.boolean(),
+  spotifyConfigured: z.boolean(),
+  nodeConnected: z.boolean(),
+  voiceChannelId: snowflakeSchema.nullable(),
+  textChannelId: snowflakeSchema.nullable(),
+  paused: z.boolean(),
+  volume: z.number().int().min(0).max(1_000),
+  loopMode: z.enum(musicLoopModes),
+  positionMs: z.number().int().nonnegative(),
+  currentTrack: musicTrackStatusSchema.nullable(),
+  queueSize: z.number().int().nonnegative(),
+  upcomingTracks: z.array(musicTrackStatusSchema).max(10),
+  updatedAt: z.string().datetime()
+});
+
+export type MusicStatus = z.infer<typeof musicStatusSchema>;
 
 export const logEvents = [
   "MESSAGE_DELETE",

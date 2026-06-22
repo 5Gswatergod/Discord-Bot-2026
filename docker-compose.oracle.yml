@@ -26,6 +26,24 @@ services:
       timeout: 5s
       retries: 20
 
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4.2.1
+    restart: unless-stopped
+    environment:
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:?Set LAVALINK_PASSWORD in .env}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      _JAVA_OPTIONS: -Xms128m -Xmx${LAVALINK_MAX_HEAP_MB:-384}m
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+    expose:
+      - "2333"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/2333'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
   dashboard:
     image: ghcr.io/5gswatergod/discord-bot-2026-dashboard:${IMAGE_TAG:-latest}
     build:
@@ -81,10 +99,17 @@ services:
       REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
       REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
       REDDIT_USER_AGENT: ${REDDIT_USER_AGENT:-}
+      LAVALINK_HOST: lavalink
+      LAVALINK_PORT: "2333"
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:?Set LAVALINK_PASSWORD in .env}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      lavalink:
         condition: service_healthy
 
   caddy:
