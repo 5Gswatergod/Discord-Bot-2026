@@ -25,6 +25,10 @@ type DiscordMemberPayload = {
   roles: string[];
 };
 
+type DiscordUserPayload = {
+  id: string;
+};
+
 const channelTypeLabels: Record<number, string> = {
   0: "文字頻道",
   2: "語音頻道",
@@ -44,18 +48,26 @@ async function fetchDiscordBotResource<T>(path: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Discord bot resource request failed with status ${response.status}`);
+    const responseBody = await response.text().catch(() => "");
+    throw new Error(
+      `Discord bot resource request failed for ${path} with status ${response.status}${
+        responseBody ? `: ${responseBody.slice(0, 300)}` : ""
+      }`
+    );
   }
 
   return (await response.json()) as T;
 }
 
 export async function getDiscordGuildResources(guildId: string): Promise<DiscordGuildResources> {
-  const [channels, roles, botMember] = await Promise.all([
+  const [channels, roles, botUser] = await Promise.all([
     fetchDiscordBotResource<DiscordChannelPayload[]>(`/guilds/${guildId}/channels`),
     fetchDiscordBotResource<DiscordRolePayload[]>(`/guilds/${guildId}/roles`),
-    fetchDiscordBotResource<DiscordMemberPayload>(`/guilds/${guildId}/members/@me`)
+    fetchDiscordBotResource<DiscordUserPayload>("/users/@me")
   ]);
+  const botMember = await fetchDiscordBotResource<DiscordMemberPayload>(
+    `/guilds/${guildId}/members/${botUser.id}`
+  );
   const categoryNames = new Map(
     channels.filter((channel) => channel.type === 4).map((channel) => [channel.id, channel.name])
   );
