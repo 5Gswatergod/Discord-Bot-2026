@@ -7,6 +7,7 @@ import { sendGuildLog } from "../lib/logging/send-log";
 import { handleWelcomeMemberAdd } from "../lib/welcome/send-welcome";
 import { trackMemberInvite } from "../lib/invite-tracking/invite-tracking";
 import { checkUserAchievements } from "../lib/achievements/achievements";
+import { handleAutomationMemberJoin } from "../lib/automations/automations";
 
 export async function handleGuildMemberAdd(member: GuildMember, context: CommandContext) {
   await handleWelcomeMemberAdd(member, context);
@@ -28,6 +29,14 @@ export async function handleGuildMemberAdd(member: GuildMember, context: Command
       });
     });
   }
+
+  await handleAutomationMemberJoin(member, context).catch((error) => {
+    context.logger.warn("Failed to process member join automation", {
+      guildId: member.guild.id,
+      userId: member.id,
+      error
+    });
+  });
 
   const embed = new EmbedBuilder()
     .setColor(0x22c55e)

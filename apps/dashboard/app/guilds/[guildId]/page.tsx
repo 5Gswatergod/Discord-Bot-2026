@@ -1,5 +1,7 @@
 import {
   achievementSettingsSchema,
+  automationRuleInputSchema,
+  automationTriggerLabels,
   autoModRuleInputSchema,
   autoModTriggers,
   birthdaySettingsSchema,
@@ -18,6 +20,7 @@ import {
   temporaryVoiceSettingsSchema,
   welcomeSettingsSchema,
   type AchievementSettings,
+  type AutomationRuleInput,
   type AutoModRuleInput,
   type BirthdaySettings,
   type CustomCommandInput,
@@ -28,7 +31,6 @@ import {
   type InviteTrackingSettings,
   type ReactionRolePanelInput,
   type ServerStatChannelInput,
-  type SocialAlertInput,
   type StarboardSettings,
   type TicketSettings,
   type TemporaryVoiceSettings
@@ -46,7 +48,10 @@ import { ModerationSettingsForm } from "@/components/settings/moderation-setting
 import { ModuleToggleForm } from "@/components/settings/module-toggle-form";
 import { PollsForm, type DashboardPollInput } from "@/components/settings/polls-form";
 import { ReactionRolesForm } from "@/components/settings/reaction-roles-form";
-import { SocialAlertsForm } from "@/components/settings/social-alerts-form";
+import {
+  SocialAlertsForm,
+  type DashboardSocialAlertInput
+} from "@/components/settings/social-alerts-form";
 import { WelcomeSettingsForm } from "@/components/settings/welcome-settings-form";
 import { TicketSettingsForm } from "@/components/settings/ticket-settings-form";
 import {
@@ -63,6 +68,7 @@ import {
 import { ServerStatsForm } from "@/components/settings/server-stats-form";
 import { StarboardSettingsForm } from "@/components/settings/starboard-settings-form";
 import { TemporaryVoiceForm } from "@/components/settings/temporary-voice-form";
+import { AutomationsForm } from "@/components/settings/automations-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireManageableGuild } from "@/lib/guild-access";
 import { prisma } from "@/lib/prisma";
@@ -97,6 +103,7 @@ const auditActionLabels: Record<string, string> = {
   DASHBOARD_BIRTHDAYS_UPDATE: "更新生日祝福",
   DASHBOARD_SERVER_STATS_UPDATE: "更新伺服器統計頻道",
   DASHBOARD_TEMPORARY_VOICE_UPDATE: "更新臨時語音頻道",
+  DASHBOARD_AUTOMATIONS_UPDATE: "更新進階自動化",
   TICKET_CLOSED: "關閉客服單",
   ECONOMY_ADMIN_ADD: "管理員增加餘額",
   ECONOMY_ADMIN_REMOVE: "管理員扣除餘額",
@@ -247,6 +254,17 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         }
       },
       socialAlerts: {
+        include: {
+          _count: {
+            select: {
+              deliveries: {
+                where: {
+                  status: "SENT"
+                }
+              }
+            }
+          }
+        },
         orderBy: {
           updatedAt: "desc"
         }
@@ -315,6 +333,29 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         }
       },
       temporaryVoice: {
+        orderBy: {
+          createdAt: "desc"
+        }
+      },
+      automationRules: {
+        orderBy: [
+          {
+            position: "asc"
+          },
+          {
+            createdAt: "asc"
+          }
+        ]
+      },
+      automationExecutions: {
+        take: 30,
+        include: {
+          rule: {
+            select: {
+              name: true
+            }
+          }
+        },
         orderBy: {
           createdAt: "desc"
         }
@@ -428,19 +469,29 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
       endsAt: poll.endsAt?.toISOString() ?? null,
       options: poll.options.map((option) => option.label)
     })) ?? [];
-  const socialAlerts: SocialAlertInput[] =
-    dbGuild?.socialAlerts.map((alert) =>
-      socialAlertInputSchema.parse({
+  const socialAlerts: DashboardSocialAlertInput[] =
+    dbGuild?.socialAlerts.map((alert) => ({
+      ...socialAlertInputSchema.parse({
         id: alert.id,
         type: alert.type,
         sourceId: alert.sourceId,
         sourceUrl: alert.sourceUrl,
         channelId: alert.channelId,
+        mentionRoleId: alert.mentionRoleId,
+        mentionEveryone: alert.mentionEveryone,
         messageTemplate: alert.messageTemplate,
         intervalSeconds: alert.intervalSeconds,
+        maxItemsPerCheck: alert.maxItemsPerCheck,
+        maxNotificationsPerHour: alert.maxNotificationsPerHour,
         enabled: alert.enabled
-      })
-    ) ?? [];
+      }),
+      consecutiveFailures: alert.consecutiveFailures,
+      lastError: alert.lastError,
+      lastErrorAt: alert.lastErrorAt?.toISOString() ?? null,
+      lastSuccessAt: alert.lastSuccessAt?.toISOString() ?? null,
+      nextCheckAt: alert.nextCheckAt.toISOString(),
+      sentCount: alert._count.deliveries
+    })) ?? [];
   const economyShopItems: EconomyShopItemInput[] =
     dbGuild?.economyShopItems.map((item) => ({
       id: item.id,
@@ -523,6 +574,22 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
   const temporaryVoiceSettings: TemporaryVoiceSettings = temporaryVoiceSettingsSchema.parse(
     moduleConfigMap.get("TEMPORARY_VOICE")?.settings ?? {}
   );
+  const automationRules: AutomationRuleInput[] =
+    dbGuild?.automationRules.map((rule) =>
+      automationRuleInputSchema.parse({
+        id: rule.id,
+        name: rule.name,
+        description: rule.description,
+        trigger: rule.trigger,
+        triggerConfig: rule.triggerConfig ?? {},
+        conditions: rule.conditions,
+        actions: rule.actions,
+        position: rule.position,
+        enabled: rule.enabled,
+        stopProcessing: rule.stopProcessing,
+        cooldownSeconds: rule.cooldownSeconds
+      })
+    ) ?? [];
   const inviteCountMap = new Map<string, number>();
 
   for (const attribution of dbGuild?.inviteAttributions ?? []) {
@@ -819,7 +886,9 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
         <Card>
           <CardHeader>
             <CardTitle>社群通知</CardTitle>
-            <CardDescription>將 YouTube、Twitch 與 RSS 更新通知傳送至 Discord。</CardDescription>
+            <CardDescription>
+              集中管理影片、直播、社群貼文、Reddit、Podcast 與自訂 Feed 通知。
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <SocialAlertsForm guildId={params.guildId} alerts={socialAlerts} />
@@ -1011,6 +1080,58 @@ export default async function GuildOverviewPage({ params }: GuildOverviewPagePro
               settings={temporaryVoiceSettings}
               activeCount={dbGuild?.temporaryVoice.length ?? 0}
             />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="automations" className="scroll-mt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>進階自動化</CardTitle>
+            <CardDescription>
+              依訊息、反應、成員加入或身分組變化觸發條件與動作；規則會依畫面順序執行。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-7">
+            <AutomationsForm guildId={params.guildId} rules={automationRules} />
+            <div className="border-t border-border pt-6">
+              <p className="mb-3 text-sm font-semibold">最近執行紀錄</p>
+              <div className="grid gap-2">
+                {(dbGuild?.automationExecutions ?? []).length > 0 ? (
+                  dbGuild?.automationExecutions.map((execution) => (
+                    <div
+                      key={execution.id}
+                      className="grid gap-1 rounded-md border border-border p-3 text-sm md:grid-cols-[1fr_auto]"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {execution.rule?.name ?? "已刪除的規則"}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {automationTriggerLabels[execution.trigger]} ·{" "}
+                          {execution.createdAt.toLocaleString("zh-TW")}
+                          {execution.durationMs !== null ? ` · ${execution.durationMs} ms` : ""}
+                        </p>
+                        {execution.error ? (
+                          <p className="mt-1 text-xs text-destructive">{execution.error}</p>
+                        ) : null}
+                      </div>
+                      <span className="self-start rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+                        {execution.status === "SUCCESS"
+                          ? "成功"
+                          : execution.status === "FAILED"
+                            ? "失敗"
+                            : execution.status === "TEST"
+                              ? "測試"
+                              : "略過"}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">目前沒有執行紀錄。</p>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </section>
