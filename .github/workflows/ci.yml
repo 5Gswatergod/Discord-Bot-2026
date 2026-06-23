@@ -113,6 +113,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install ffmpeg for local-source fixture
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+
       - name: Start Lavalink
         run: docker compose up -d lavalink
 
