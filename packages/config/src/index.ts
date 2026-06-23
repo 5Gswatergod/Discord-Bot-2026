@@ -33,7 +33,7 @@ export const botEnvSchema = sharedEnvSchema.extend({
   SPOTIFY_CLIENT_SECRET: optionalString,
   YTDLP_PATH: z.string().min(1).default("yt-dlp"),
   MUSIC_TEMP_DIR: z.string().min(1).default(".cache/music"),
-  MUSIC_LAVALINK_LOCAL_PREFIX: z.string().min(1).default("local:///opt/Lavalink/music"),
+  MUSIC_LAVALINK_LOCAL_PREFIX: z.string().min(1).default("/opt/Lavalink/music"),
   MUSIC_DOWNLOAD_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),
   MUSIC_DOWNLOAD_TIMEOUT_SECONDS: z.coerce.number().int().min(30).max(900).default(180),
   MUSIC_MAX_FILE_MB: z.coerce.number().int().min(16).max(2_048).default(512),

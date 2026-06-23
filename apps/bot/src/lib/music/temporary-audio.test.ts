@@ -75,7 +75,7 @@ test("prepares an atomic Opus file with an injected yt-dlp runner and deletes it
     const manager = new TemporaryAudioManager({
       executable: "fake-yt-dlp",
       directory,
-      lavalinkLocalPrefix: "local:///opt/Lavalink/music",
+      lavalinkLocalPrefix: "/opt/Lavalink/music",
       concurrency: 2,
       timeoutMs: 1_000,
       maxFileBytes: 1024 * 1024,
@@ -99,7 +99,7 @@ test("prepares an atomic Opus file with an injected yt-dlp runner and deletes it
       "current"
     );
 
-    assert.equal(prepared.lavalinkUri.startsWith("local:///opt/Lavalink/music/"), true);
+    assert.equal(prepared.lavalinkUri.startsWith("/opt/Lavalink/music/"), true);
     assert.equal(prepared.fileName.endsWith(".opus"), true);
     assert.deepEqual(await readdir(directory), [prepared.fileName]);
 
@@ -129,7 +129,7 @@ test("startup cleanup removes incomplete and old unreferenced files", async () =
     const manager = new TemporaryAudioManager({
       executable: "fake-yt-dlp",
       directory,
-      lavalinkLocalPrefix: "local:///opt/Lavalink/music",
+      lavalinkLocalPrefix: "/opt/Lavalink/music",
       concurrency: 2,
       timeoutMs: 1_000,
       maxFileBytes: 1024 * 1024,
@@ -154,7 +154,7 @@ test("limits concurrent downloads globally", async () => {
     const manager = new TemporaryAudioManager({
       executable: "fake-yt-dlp",
       directory,
-      lavalinkLocalPrefix: "local:///opt/Lavalink/music",
+      lavalinkLocalPrefix: "/opt/Lavalink/music",
       concurrency: 2,
       timeoutMs: 1_000,
       maxFileBytes: 1024 * 1024,
@@ -201,7 +201,7 @@ test("cancels an active download without leaving a prepared file", async () => {
     const manager = new TemporaryAudioManager({
       executable: "fake-yt-dlp",
       directory,
-      lavalinkLocalPrefix: "local:///opt/Lavalink/music",
+      lavalinkLocalPrefix: "/opt/Lavalink/music",
       concurrency: 1,
       timeoutMs: 1_000,
       maxFileBytes: 1024 * 1024,

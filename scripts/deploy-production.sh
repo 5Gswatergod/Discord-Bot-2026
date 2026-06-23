@@ -234,7 +234,7 @@ compose_for_tag "$TARGET_TAG" run --rm --no-deps bot \
   -c:a libopus -y /var/lib/hydrava-music/hydrava-deploy-smoke.opus
 compose_for_tag "$TARGET_TAG" run --rm --no-deps bot node -e '
   const password = process.env.LAVALINK_PASSWORD;
-  const identifier = encodeURIComponent("local:///opt/Lavalink/music/hydrava-deploy-smoke.opus");
+  const identifier = encodeURIComponent("/opt/Lavalink/music/hydrava-deploy-smoke.opus");
   fetch(`http://lavalink:2333/v4/loadtracks?identifier=${identifier}`, {
     headers: { Authorization: password }
   })

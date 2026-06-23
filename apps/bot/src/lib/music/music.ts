@@ -171,8 +171,7 @@ export class MusicService {
         /^https:\/\/m\.youtube\.com\//i,
         /^https:\/\/music\.youtube\.com\//i,
         /^https:\/\/youtu\.be\//i,
-        /^https:\/\/open\.spotify\.com\//i,
-        /^local:\/\/\//i
+        /^https:\/\/open\.spotify\.com\//i
       ],
       playerOptions: {
         defaultSearchPlatform: "ytsearch",
@@ -1149,7 +1148,7 @@ export class MusicService {
 
   private async loadLocalTrack(player: Player, metadata: LogicalTrack, prepared: PreparedAudio) {
     const result = await player.search(
-      { query: prepared.lavalinkUri },
+      { query: prepared.lavalinkUri, source: "local" },
       metadata.requester ?? { id: "unknown", username: "Unknown" }
     );
     const local = result.tracks.find((track): track is Track => "encoded" in track);

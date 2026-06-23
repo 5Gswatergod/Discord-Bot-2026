@@ -155,11 +155,12 @@ jobs:
             -v "$volume_name:/music" \
             -v /tmp/hydrava-smoke.opus:/source/hydrava-smoke.opus:ro \
             alpine:3.21 cp /source/hydrava-smoke.opus /music/hydrava-smoke.opus
+          docker exec "$container_id" test -r /opt/Lavalink/music/hydrava-smoke.opus
           response="$(docker run --rm --network "$network_name" curlimages/curl:8.12.1 \
             --silent --show-error --fail \
             --get \
             --header "Authorization: $LAVALINK_PASSWORD" \
-            --data-urlencode "identifier=local:///opt/Lavalink/music/hydrava-smoke.opus" \
+            --data-urlencode "identifier=/opt/Lavalink/music/hydrava-smoke.opus" \
             http://lavalink:2333/v4/loadtracks)"
           echo "$response"
           grep -Eq '"loadType":"track"' <<<"$response"

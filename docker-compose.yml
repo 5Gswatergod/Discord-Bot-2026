@@ -71,7 +71,7 @@ services:
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
       MUSIC_TEMP_DIR: /var/lib/hydrava-music
-      MUSIC_LAVALINK_LOCAL_PREFIX: local:///opt/Lavalink/music
+      MUSIC_LAVALINK_LOCAL_PREFIX: /opt/Lavalink/music
     command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm db:generate && pnpm dev:bot"
     volumes:
       - .:/workspace
