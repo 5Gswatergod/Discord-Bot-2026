@@ -170,6 +170,10 @@ export const musicStatusSchema = z.object({
   currentTrack: musicTrackStatusSchema.nullable(),
   queueSize: z.number().int().nonnegative(),
   upcomingTracks: z.array(musicTrackStatusSchema).max(10),
+  deliveryMode: z.enum(["temporary_file", "live_stream"]).nullable(),
+  downloadState: z.enum(["idle", "queued", "downloading", "ready", "failed"]),
+  preparingTrack: musicTrackStatusSchema.nullable(),
+  temporaryStorageBytes: z.number().int().nonnegative(),
   updatedAt: z.string().datetime()
 });
 

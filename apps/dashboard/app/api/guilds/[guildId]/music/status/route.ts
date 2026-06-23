@@ -83,6 +83,10 @@ function inactiveStatus(overrides: {
     currentTrack: null,
     queueSize: 0,
     upcomingTracks: [],
+    deliveryMode: null,
+    downloadState: "idle",
+    preparingTrack: null,
+    temporaryStorageBytes: 0,
     updatedAt: overrides.updatedAt ?? new Date().toISOString()
   };
 }

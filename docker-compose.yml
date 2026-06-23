@@ -44,6 +44,7 @@ services:
       _JAVA_OPTIONS: -Xms128m -Xmx${LAVALINK_MAX_HEAP_MB:-384}m
     volumes:
       - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - music-cache:/opt/Lavalink/music:ro
     expose:
       - "2333"
     healthcheck:
@@ -53,7 +54,10 @@ services:
       retries: 20
 
   bot:
-    image: node:22-alpine
+    build:
+      context: .
+      target: bot-tools
+    image: guildforge-bot-tools:local
     restart: unless-stopped
     working_dir: /workspace
     env_file:
@@ -66,10 +70,13 @@ services:
       LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-local-development-password}
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      MUSIC_TEMP_DIR: /var/lib/hydrava-music
+      MUSIC_LAVALINK_LOCAL_PREFIX: local:///opt/Lavalink/music
     command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm db:generate && pnpm dev:bot"
     volumes:
       - .:/workspace
       - pnpm-store:/root/.local/share/pnpm/store
+      - music-cache:/var/lib/hydrava-music
     depends_on:
       postgres:
         condition: service_healthy
@@ -111,3 +118,4 @@ services:
 volumes:
   postgres-data:
   pnpm-store:
+  music-cache:

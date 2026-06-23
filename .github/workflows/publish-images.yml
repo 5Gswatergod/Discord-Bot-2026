@@ -71,9 +71,11 @@ jobs:
           - target: bot
             image: ghcr.io/5gswatergod/discord-bot-2026-bot
             description: GuildForge Discord bot
+            platforms: linux/amd64,linux/arm64
           - target: dashboard
             image: ghcr.io/5gswatergod/discord-bot-2026-dashboard
             description: GuildForge management dashboard
+            platforms: linux/amd64
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -96,7 +98,7 @@ jobs:
           context: .
           file: ./Dockerfile
           target: ${{ matrix.target }}
-          platforms: linux/amd64
+          platforms: ${{ matrix.platforms }}
           push: true
           tags: |
             ${{ matrix.image }}:sha-${{ github.sha }}

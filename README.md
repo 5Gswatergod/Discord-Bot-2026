@@ -117,6 +117,16 @@ Spotify links are optional. YouTube remains available without these values:
 - `SPOTIFY_CLIENT_ID`
 - `SPOTIFY_CLIENT_SECRET`
 
+Temporary-file delivery is configurable with:
+
+- `YTDLP_PATH` (defaults to the fixed yt-dlp binary bundled in the Bot image)
+- `MUSIC_TEMP_DIR`, `MUSIC_DOWNLOAD_CONCURRENCY`, `MUSIC_DOWNLOAD_TIMEOUT_SECONDS`
+- `MUSIC_MAX_FILE_MB`, `MUSIC_MAX_TEMP_MB`, `MUSIC_MAX_DURATION_SECONDS`
+
+Hydrava deletes temporary audio after playback and does not use cookies or login accounts. Using
+yt-dlp improves source compatibility but does not itself grant YouTube or recording-label
+redistribution rights; operators remain responsible for applicable platform terms and licensing.
+
 Membership providers send JSON to `/api/webhooks/memberships/{guildId}` with an
 `x-hydrava-signature: sha256=<hex>` HMAC generated from the raw request body and
 `MEMBERSHIP_WEBHOOK_SECRET`. Payloads include `eventId`, `occurredAt`, Discord `userId`,

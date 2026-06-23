@@ -20,7 +20,7 @@ lavalink:
       vimeo: false
       nico: false
       http: false
-      local: false
+      local: true
     filters:
       volume: true
     playerUpdateInterval: 5

@@ -8,6 +8,7 @@ import {
   classifyMusicQuery,
   computeQueueAllowance,
   computeSkipThreshold,
+  decideTrackCompletion,
   serializeMusicStatus
 } from "../lib/music/music-policy";
 
@@ -100,6 +101,33 @@ test("calculates queue and skip limits deterministically", () => {
   );
 });
 
+test("applies loop policy only to naturally completed tracks", () => {
+  assert.deepEqual(
+    decideTrackCompletion({
+      loopMode: "track",
+      reason: "finished",
+      skipRequested: false
+    }),
+    { repeatCurrent: true, requeueCurrent: false }
+  );
+  assert.deepEqual(
+    decideTrackCompletion({
+      loopMode: "queue",
+      reason: "finished",
+      skipRequested: false
+    }),
+    { repeatCurrent: false, requeueCurrent: true }
+  );
+  assert.deepEqual(
+    decideTrackCompletion({
+      loopMode: "track",
+      reason: "stopped",
+      skipRequested: true
+    }),
+    { repeatCurrent: false, requeueCurrent: false }
+  );
+});
+
 test("serializes active player state for the dashboard", () => {
   const status = serializeMusicStatus(
     {
@@ -152,4 +180,7 @@ test("serializes active player state for the dashboard", () => {
   assert.equal(status.queueSize, 1);
   assert.equal(status.upcomingTracks[0]?.title, "Next");
   assert.equal(status.loopMode, "queue");
+  assert.equal(status.deliveryMode, null);
+  assert.equal(status.downloadState, "idle");
+  assert.equal(status.temporaryStorageBytes, 0);
 });

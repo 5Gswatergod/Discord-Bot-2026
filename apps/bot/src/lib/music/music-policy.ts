@@ -89,14 +89,45 @@ export function computeQueueAllowance(input: {
   );
 }
 
+export function decideTrackCompletion(input: {
+  loopMode: "off" | "track" | "queue";
+  reason: "finished" | "loadFailed" | "stopped" | "replaced" | "cleanup" | "failed";
+  skipRequested: boolean;
+}) {
+  const completedNormally = input.reason === "finished" && !input.skipRequested;
+  return {
+    repeatCurrent: completedNormally && input.loopMode === "track",
+    requeueCurrent: completedNormally && input.loopMode === "queue"
+  };
+}
+
+export function shouldInvalidatePrefetch(
+  currentPrefetchId: string | null,
+  nextTrackId: string | null
+) {
+  return Boolean(currentPrefetchId && currentPrefetchId !== nextTrackId);
+}
+
 export function serializeMusicStatus(
   player: Player,
   options: {
     nodeConnected: boolean;
     spotifyConfigured: boolean;
     redisAvailable: boolean;
+    currentTrack?: MusicTrack | null;
+    upcomingTracks?: MusicTrack[];
+    deliveryMode?: MusicStatus["deliveryMode"];
+    downloadState?: MusicStatus["downloadState"];
+    preparingTrack?: MusicTrack | null;
+    temporaryStorageBytes?: number;
+    loopMode?: MusicStatus["loopMode"];
   }
 ): MusicStatus {
+  const currentTrack =
+    options.currentTrack === undefined ? player.queue.current : options.currentTrack;
+  const upcomingTracks =
+    options.upcomingTracks === undefined ? player.queue.tracks : options.upcomingTracks;
+
   return {
     available: true,
     redisAvailable: options.redisAvailable,
@@ -106,11 +137,15 @@ export function serializeMusicStatus(
     textChannelId: player.textChannelId,
     paused: player.paused,
     volume: Math.round(player.volume),
-    loopMode: player.repeatMode,
+    loopMode: options.loopMode ?? player.repeatMode,
     positionMs: Math.max(0, Math.round(player.position)),
-    currentTrack: serializeTrack(player.queue.current),
-    queueSize: player.queue.tracks.length,
-    upcomingTracks: player.queue.tracks.slice(0, 10).map(serializeTrack).filter(isPresent),
+    currentTrack: serializeTrack(currentTrack),
+    queueSize: upcomingTracks.length,
+    upcomingTracks: upcomingTracks.slice(0, 10).map(serializeTrack).filter(isPresent),
+    deliveryMode: options.deliveryMode ?? null,
+    downloadState: options.downloadState ?? "idle",
+    preparingTrack: serializeTrack(options.preparingTrack ?? null),
+    temporaryStorageBytes: Math.max(0, Math.round(options.temporaryStorageBytes ?? 0)),
     updatedAt: new Date().toISOString()
   };
 }
