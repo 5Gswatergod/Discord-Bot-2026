@@ -86,9 +86,18 @@ jobs:
           target: ${{ matrix.target }}
           platforms: linux/amd64
           push: false
+          load: true
           tags: ${{ matrix.image }}:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha,scope=${{ matrix.target }}
           cache-to: type=gha,mode=max,scope=${{ matrix.target }},ignore-error=true
+
+      - name: Verify yt-dlp and ffmpeg
+        if: matrix.target == 'bot'
+        run: |
+          set -euo pipefail
+          image="${{ matrix.image }}:pr-${{ github.event.pull_request.number }}"
+          test "$(docker run --rm "$image" yt-dlp --version)" = "2026.06.09"
+          docker run --rm "$image" ffmpeg -version
 
   lavalink-smoke:
     name: Lavalink Plugin Smoke Test
@@ -103,6 +112,11 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+
+      - name: Install ffmpeg for local-source fixture
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
 
       - name: Start Lavalink
         run: docker compose up -d lavalink
@@ -126,6 +140,31 @@ jobs:
           docker compose logs lavalink | tee /tmp/lavalink.log
           grep -Eiq 'youtube-plugin|youtube source|youtube.*plugin' /tmp/lavalink.log
           grep -Eiq 'lavasrc|lava src' /tmp/lavalink.log
+
+      - name: Verify Lavalink local source
+        run: |
+          set -euo pipefail
+          container_id="$(docker compose ps -q lavalink)"
+          volume_name="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/opt/Lavalink/music"}}{{.Name}}{{end}}{{end}}' "$container_id")"
+          network_name="$(docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' "$container_id")"
+          test -n "$volume_name"
+          test -n "$network_name"
+          ffmpeg -hide_banner -loglevel error -f lavfi -i "sine=frequency=440:duration=1" \
+            -c:a libopus /tmp/hydrava-smoke.opus
+          docker run --rm \
+            -v "$volume_name:/music" \
+            -v /tmp/hydrava-smoke.opus:/source/hydrava-smoke.opus:ro \
+            alpine:3.21 cp /source/hydrava-smoke.opus /music/hydrava-smoke.opus
+          docker exec "$container_id" test -r /opt/Lavalink/music/hydrava-smoke.opus
+          response="$(docker run --rm --network "$network_name" curlimages/curl:8.12.1 \
+            --silent --show-error --fail \
+            --get \
+            --header "Authorization: $LAVALINK_PASSWORD" \
+            --data-urlencode "identifier=/opt/Lavalink/music/hydrava-smoke.opus" \
+            http://lavalink:2333/v4/loadtracks)"
+          echo "$response"
+          grep -Eq '"loadType":"track"' <<<"$response"
+          docker run --rm -v "$volume_name:/music" alpine:3.21 rm -f /music/hydrava-smoke.opus
 
       - name: Lavalink logs
         if: always()

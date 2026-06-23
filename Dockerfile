@@ -39,7 +39,36 @@ RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/guildforge?schem
 
 CMD ["corepack", "pnpm", "--filter", "@guildforge/dashboard", "start"]
 
-FROM dependencies AS bot
+FROM dependencies AS bot-tools
+
+ARG TARGETARCH=amd64
+ARG YTDLP_VERSION=2026.06.09
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ffmpeg \
+    && case "$TARGETARCH" in \
+      amd64) YTDLP_ASSET="yt-dlp_linux" ;; \
+      arm64) YTDLP_ASSET="yt-dlp_linux_aarch64" ;; \
+      *) echo "Unsupported yt-dlp architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+    && curl --fail --location --retry 3 \
+      "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/${YTDLP_ASSET}" \
+      --output /usr/local/bin/yt-dlp \
+    && curl --fail --location --retry 3 \
+      "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/SHA2-256SUMS" \
+      --output /tmp/yt-dlp-sha256sums \
+    && grep -E "[[:space:]]${YTDLP_ASSET}$" /tmp/yt-dlp-sha256sums \
+      | sed "s#${YTDLP_ASSET}\$#/usr/local/bin/yt-dlp#" \
+      | sha256sum --check --strict - \
+    && chmod 0755 /usr/local/bin/yt-dlp \
+    && test "$(/usr/local/bin/yt-dlp --version)" = "$YTDLP_VERSION" \
+    && ffmpeg -version >/dev/null \
+    && rm -f /tmp/yt-dlp-sha256sums \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV YTDLP_PATH=/usr/local/bin/yt-dlp
+
+FROM bot-tools AS bot
 
 COPY packages packages
 COPY apps/bot apps/bot

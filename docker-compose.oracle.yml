@@ -36,6 +36,7 @@ services:
       _JAVA_OPTIONS: -Xms128m -Xmx${LAVALINK_MAX_HEAP_MB:-384}m
     volumes:
       - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - oracle-music-cache:/opt/Lavalink/music:ro
     expose:
       - "2333"
     healthcheck:
@@ -104,6 +105,17 @@ services:
       LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:?Set LAVALINK_PASSWORD in .env}
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      YTDLP_PATH: /usr/local/bin/yt-dlp
+      MUSIC_TEMP_DIR: /var/lib/hydrava-music
+      MUSIC_LAVALINK_LOCAL_PREFIX: /opt/Lavalink/music
+      MUSIC_DOWNLOAD_CONCURRENCY: ${MUSIC_DOWNLOAD_CONCURRENCY:-2}
+      MUSIC_DOWNLOAD_TIMEOUT_SECONDS: ${MUSIC_DOWNLOAD_TIMEOUT_SECONDS:-180}
+      MUSIC_MAX_FILE_MB: ${MUSIC_MAX_FILE_MB:-512}
+      MUSIC_MAX_TEMP_MB: ${MUSIC_MAX_TEMP_MB:-2048}
+      MUSIC_MAX_DURATION_SECONDS: ${MUSIC_MAX_DURATION_SECONDS:-21600}
+      MUSIC_ORPHAN_MAX_AGE_SECONDS: ${MUSIC_ORPHAN_MAX_AGE_SECONDS:-900}
+    volumes:
+      - oracle-music-cache:/var/lib/hydrava-music
     depends_on:
       postgres:
         condition: service_healthy
@@ -134,3 +146,4 @@ volumes:
   oracle-redis-data:
   oracle-caddy-data:
   oracle-caddy-config:
+  oracle-music-cache:

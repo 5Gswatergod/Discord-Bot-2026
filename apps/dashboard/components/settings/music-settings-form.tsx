@@ -265,6 +265,18 @@ function MusicStatusPanel({ status }: { status: MusicStatus | null }) {
             <StatusItem label="Redis 狀態" value={status.redisAvailable ? "正常" : "不可用"} />
             <StatusItem label="佇列" value={`${status.queueSize} 首`} />
             <StatusItem
+              label="音訊來源"
+              value={
+                status.deliveryMode === "temporary_file"
+                  ? "暫存檔播放"
+                  : status.deliveryMode === "live_stream"
+                    ? "YouTube 直播"
+                    : "待命"
+              }
+            />
+            <StatusItem label="下載狀態" value={downloadStateLabel(status.downloadState)} />
+            <StatusItem label="暫存空間" value={formatBytes(status.temporaryStorageBytes)} />
+            <StatusItem
               label="目前歌曲"
               value={
                 status.currentTrack
@@ -296,6 +308,15 @@ function MusicStatusPanel({ status }: { status: MusicStatus | null }) {
             <StatusItem label="語音頻道" value={status.voiceChannelId ? "已連線" : "未連線"} />
             <StatusItem label="循環模式" value={loopModeLabel(status.loopMode)} />
           </div>
+
+          {status.preparingTrack ? (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+              <p className="text-xs text-muted-foreground">正在準備／預載</p>
+              <p className="mt-1 font-medium">
+                {status.preparingTrack.title} · {status.preparingTrack.author}
+              </p>
+            </div>
+          ) : null}
 
           {status.upcomingTracks.length > 0 ? (
             <div className="rounded-md border border-border bg-card p-3">
@@ -351,6 +372,28 @@ function formatDuration(durationMs: number) {
 
 function loopModeLabel(mode: MusicStatus["loopMode"]) {
   return mode === "track" ? "單曲循環" : mode === "queue" ? "佇列循環" : "關閉";
+}
+
+function downloadStateLabel(state: MusicStatus["downloadState"]) {
+  switch (state) {
+    case "queued":
+      return "等待下載";
+    case "downloading":
+      return "下載中";
+    case "ready":
+      return "已準備";
+    case "failed":
+      return "準備失敗";
+    default:
+      return "閒置";
+  }
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(bytes > 0 ? 1 : 0)} KB`;
+  }
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function NumberSetting({

@@ -226,6 +226,32 @@ echo "Starting Lavalink..."
 compose_for_tag "$TARGET_TAG" up -d --no-build --force-recreate lavalink
 wait_for_lavalink "$TARGET_TAG"
 
+echo "Verifying yt-dlp, ffmpeg, and Lavalink local source..."
+test "$(compose_for_tag "$TARGET_TAG" run --rm --no-deps bot yt-dlp --version | tr -d '\r')" = "2026.06.09"
+compose_for_tag "$TARGET_TAG" run --rm --no-deps bot ffmpeg -version >/dev/null
+compose_for_tag "$TARGET_TAG" run --rm --no-deps bot \
+  ffmpeg -hide_banner -loglevel error -f lavfi -i "sine=frequency=440:duration=1" \
+  -c:a libopus -y /var/lib/hydrava-music/hydrava-deploy-smoke.opus
+compose_for_tag "$TARGET_TAG" run --rm --no-deps bot node -e '
+  const password = process.env.LAVALINK_PASSWORD;
+  const identifier = encodeURIComponent("/opt/Lavalink/music/hydrava-deploy-smoke.opus");
+  fetch(`http://lavalink:2333/v4/loadtracks?identifier=${identifier}`, {
+    headers: { Authorization: password }
+  })
+    .then(async (response) => {
+      const body = await response.text();
+      if (!response.ok || !body.includes("\"loadType\":\"track\"")) {
+        throw new Error(`Lavalink local-source smoke failed: ${response.status} ${body}`);
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+'
+compose_for_tag "$TARGET_TAG" run --rm --no-deps bot \
+  rm -f /var/lib/hydrava-music/hydrava-deploy-smoke.opus
+
 echo "Applying the Prisma schema with the target Dashboard image..."
 compose_for_tag "$TARGET_TAG" run --rm --no-deps dashboard corepack pnpm db:push
 
