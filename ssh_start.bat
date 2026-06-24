@@ -1,1 +1,0 @@
-ssh -i .\oracle.key ubuntu@158.101.142.151
