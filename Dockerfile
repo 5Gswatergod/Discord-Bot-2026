@@ -41,15 +41,16 @@ CMD ["corepack", "pnpm", "--filter", "@guildforge/dashboard", "start"]
 
 FROM dependencies AS bot-tools
 
-ARG TARGETARCH=amd64
+ARG TARGETARCH
 ARG YTDLP_VERSION=2026.06.09
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ffmpeg \
-    && case "$TARGETARCH" in \
+    && YTDLP_ARCH="${TARGETARCH:-amd64}" \
+    && case "$YTDLP_ARCH" in \
       amd64) YTDLP_ASSET="yt-dlp_linux" ;; \
       arm64) YTDLP_ASSET="yt-dlp_linux_aarch64" ;; \
-      *) echo "Unsupported yt-dlp architecture: $TARGETARCH" >&2; exit 1 ;; \
+      *) echo "Unsupported yt-dlp architecture: $YTDLP_ARCH" >&2; exit 1 ;; \
     esac \
     && curl --fail --location --retry 3 \
       "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/${YTDLP_ASSET}" \
