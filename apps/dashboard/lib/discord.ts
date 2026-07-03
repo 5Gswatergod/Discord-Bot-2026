@@ -12,6 +12,17 @@ type DiscordGuildPayload = {
   approximate_member_count?: number;
 };
 
+export class DiscordGuildFetchError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly responseBody: string
+  ) {
+    super(message);
+    this.name = "DiscordGuildFetchError";
+  }
+}
+
 export type ManageableGuild = {
   id: string;
   name: string;
@@ -56,7 +67,14 @@ async function fetchDiscordGuilds(accessToken: string) {
   });
 
   if (!response.ok) {
-    throw new Error(`Discord guild fetch failed with status ${response.status}`);
+    const responseBody = await response.text().catch(() => "");
+    throw new DiscordGuildFetchError(
+      `Discord guild fetch failed with status ${response.status}${
+        responseBody ? `: ${responseBody.slice(0, 300)}` : ""
+      }`,
+      response.status,
+      responseBody
+    );
   }
 
   return (await response.json()) as DiscordGuildPayload[];

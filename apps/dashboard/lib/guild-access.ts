@@ -7,7 +7,7 @@ import { getManageableGuilds } from "@/lib/discord";
 export async function requireManageableGuild(guildId: string) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.accessToken) {
+  if (!session?.accessToken || session.authError) {
     redirect("/");
   }
 

@@ -19,6 +19,9 @@ type DiscordRolePayload = {
   color: number;
   position: number;
   managed: boolean;
+  tags?: {
+    bot_id?: string;
+  };
 };
 
 type DiscordMemberPayload = {
@@ -39,6 +42,21 @@ const channelTypeLabels: Record<number, string> = {
   16: "媒體頻道"
 };
 
+class DiscordBotResourceError extends Error {
+  constructor(
+    path: string,
+    public readonly status: number,
+    public readonly responseBody: string
+  ) {
+    super(
+      `Discord bot resource request failed for ${path} with status ${status}${
+        responseBody ? `: ${responseBody.slice(0, 300)}` : ""
+      }`
+    );
+    this.name = "DiscordBotResourceError";
+  }
+}
+
 async function fetchDiscordBotResource<T>(path: string): Promise<T> {
   const response = await fetch(`https://discord.com/api/v10${path}`, {
     headers: {
@@ -49,14 +67,49 @@ async function fetchDiscordBotResource<T>(path: string): Promise<T> {
 
   if (!response.ok) {
     const responseBody = await response.text().catch(() => "");
-    throw new Error(
-      `Discord bot resource request failed for ${path} with status ${response.status}${
-        responseBody ? `: ${responseBody.slice(0, 300)}` : ""
-      }`
-    );
+    throw new DiscordBotResourceError(path, response.status, responseBody);
   }
 
   return (await response.json()) as T;
+}
+
+async function fetchDiscordBotMember(guildId: string, botUserId: string) {
+  try {
+    return await fetchDiscordBotResource<DiscordMemberPayload>(
+      `/guilds/${guildId}/members/${botUserId}`
+    );
+  } catch (error) {
+    if (
+      error instanceof DiscordBotResourceError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      console.warn("Unable to load Discord bot guild member; using managed bot role fallback", {
+        guildId,
+        botUserId,
+        status: error.status
+      });
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+function getBotHighestRolePosition(
+  roles: DiscordRolePayload[],
+  botMember: DiscordMemberPayload | null,
+  botUserId: string
+) {
+  const roleMap = new Map(roles.map((role) => [role.id, role]));
+
+  if (botMember) {
+    return botMember.roles.reduce(
+      (highest, roleId) => Math.max(highest, roleMap.get(roleId)?.position ?? 0),
+      0
+    );
+  }
+
+  return roles.find((role) => role.tags?.bot_id === botUserId)?.position ?? 0;
 }
 
 export async function getDiscordGuildResources(guildId: string): Promise<DiscordGuildResources> {
@@ -65,9 +118,7 @@ export async function getDiscordGuildResources(guildId: string): Promise<Discord
     fetchDiscordBotResource<DiscordRolePayload[]>(`/guilds/${guildId}/roles`),
     fetchDiscordBotResource<DiscordUserPayload>("/users/@me")
   ]);
-  const botMember = await fetchDiscordBotResource<DiscordMemberPayload>(
-    `/guilds/${guildId}/members/${botUser.id}`
-  );
+  const botMember = await fetchDiscordBotMember(guildId, botUser.id);
   const categoryNames = new Map(
     channels.filter((channel) => channel.type === 4).map((channel) => [channel.id, channel.name])
   );
@@ -87,11 +138,7 @@ export async function getDiscordGuildResources(guildId: string): Promise<Discord
         left.position - right.position ||
         left.name.localeCompare(right.name, "zh-Hant")
     );
-  const roleMap = new Map(roles.map((role) => [role.id, role]));
-  const botHighestRolePosition = botMember.roles.reduce(
-    (highest, roleId) => Math.max(highest, roleMap.get(roleId)?.position ?? 0),
-    0
-  );
+  const botHighestRolePosition = getBotHighestRolePosition(roles, botMember, botUser.id);
   const roleResources: DiscordRoleResource[] = roles
     .filter((role) => role.id !== guildId)
     .map((role) => ({
