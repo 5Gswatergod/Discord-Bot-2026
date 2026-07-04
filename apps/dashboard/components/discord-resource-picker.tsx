@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronsUpDown, Search, X } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, RefreshCw, Search, X } from "lucide-react";
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -14,6 +14,8 @@ type DiscordResourcesState = {
   data: DiscordGuildResources | null;
   loading: boolean;
   error: string | null;
+  retrying: boolean;
+  canRetry: boolean;
 };
 
 type SinglePickerProps = {
@@ -34,8 +36,14 @@ type MultiPickerProps = {
 
 const DiscordResourcesContext = createContext<DiscordResourcesState | null>(null);
 const textChannelTypes = new Set([0, 5, 15, 16]);
+const resourceRetryDelaysMs = [1_000, 2_000, 4_000, 8_000, 15_000, 30_000];
 const selectClassName =
   "h-10 w-full rounded-md border border-border bg-input px-3 text-sm text-foreground outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:opacity-50";
+
+type ResourceLoadError = Error & {
+  status?: number;
+  retryable?: boolean;
+};
 
 function isDiscordGuildResources(value: unknown): value is DiscordGuildResources {
   return (
@@ -48,6 +56,41 @@ function isDiscordGuildResources(value: unknown): value is DiscordGuildResources
   );
 }
 
+function getApiErrorMessage(body: unknown) {
+  return typeof body === "object" &&
+    body !== null &&
+    "error" in body &&
+    typeof body.error === "string"
+    ? body.error
+    : "無法載入 Discord 資源。";
+}
+
+function isRetryableResourceStatus(status: number | null) {
+  return status === null || status === 408 || status === 409 || status === 429 || status >= 500;
+}
+
+async function fetchDiscordGuildResources(guildId: string, signal: AbortSignal) {
+  const response = await fetch(`/api/guilds/${guildId}/discord-resources`, {
+    signal
+  });
+  const body = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    const error = new Error(getApiErrorMessage(body)) as ResourceLoadError;
+    error.status = response.status;
+    error.retryable = isRetryableResourceStatus(response.status);
+    throw error;
+  }
+
+  if (!isDiscordGuildResources(body)) {
+    const error = new Error("Discord 資源格式不完整，正在重新確認。") as ResourceLoadError;
+    error.retryable = true;
+    throw error;
+  }
+
+  return body;
+}
+
 export function DiscordResourcesProvider({
   guildId,
   children
@@ -58,65 +101,147 @@ export function DiscordResourcesProvider({
   const [state, setState] = useState<DiscordResourcesState>({
     data: null,
     loading: true,
-    error: null
+    error: null,
+    retrying: false,
+    canRetry: false
   });
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    async function loadResources() {
+    async function loadResources(attempt: number) {
+      setState((current) => ({
+        data: null,
+        loading: true,
+        error: attempt === 0 ? null : current.error,
+        retrying: attempt > 0,
+        canRetry: false
+      }));
+
       try {
-        const response = await fetch(`/api/guilds/${guildId}/discord-resources`, {
-          signal: controller.signal
-        });
-        const body = (await response.json().catch(() => null)) as unknown;
-
-        if (!response.ok || !isDiscordGuildResources(body)) {
-          const errorMessage =
-            typeof body === "object" &&
-            body !== null &&
-            "error" in body &&
-            typeof body.error === "string"
-              ? body.error
-              : "無法載入 Discord 資源。";
-
-          throw new Error(errorMessage);
-        }
+        const body = await fetchDiscordGuildResources(guildId, controller.signal);
 
         setState({
           data: body,
           loading: false,
-          error: null
+          error: null,
+          retrying: false,
+          canRetry: false
         });
       } catch (error) {
         if (controller.signal.aborted) {
           return;
         }
 
+        const resourceError = error as ResourceLoadError;
+        const errorMessage =
+          resourceError instanceof Error ? resourceError.message : "無法載入 Discord 資源。";
+        const shouldRetry = resourceError.retryable ?? true;
+
+        if (shouldRetry) {
+          const delay =
+            resourceRetryDelaysMs[Math.min(attempt, resourceRetryDelaysMs.length - 1)] ??
+            resourceRetryDelaysMs[resourceRetryDelaysMs.length - 1];
+
+          setState({
+            data: null,
+            loading: false,
+            error: errorMessage,
+            retrying: true,
+            canRetry: true
+          });
+
+          retryTimer = setTimeout(() => {
+            void loadResources(attempt + 1);
+          }, delay);
+          return;
+        }
+
         setState({
           data: null,
           loading: false,
-          error: error instanceof Error ? error.message : "無法載入 Discord 資源。"
+          error: errorMessage,
+          retrying: false,
+          canRetry: true
         });
       }
     }
 
-    void loadResources();
-    return () => controller.abort();
-  }, [guildId]);
+    void loadResources(0);
+    return () => {
+      controller.abort();
+
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+    };
+  }, [guildId, retryKey]);
+
+  function retryNow() {
+    setRetryKey((current) => current + 1);
+  }
 
   return (
     <DiscordResourcesContext.Provider value={state}>
-      {state.error ? (
-        <div
-          role="alert"
-          className="rounded-md border border-amber-500/30 bg-amber-400/10 p-3 text-sm text-amber-800 dark:text-amber-200"
-        >
-          {state.error}
-        </div>
-      ) : null}
-      {children}
+      {state.data ? children : <DiscordResourcesGate state={state} onRetry={retryNow} />}
     </DiscordResourcesContext.Provider>
+  );
+}
+
+function DiscordResourcesGate({
+  state,
+  onRetry
+}: {
+  state: DiscordResourcesState;
+  onRetry: () => void;
+}) {
+  const title =
+    state.error && !state.retrying && !state.loading
+      ? "無法確認 Discord 資源存取權"
+      : state.error
+        ? "正在重新確認 Discord 資源存取權"
+        : "正在載入 Discord 資源";
+  const description = state.error
+    ? state.retrying
+      ? "暫時無法存取頻道或身分組，系統會自動重試。"
+      : "暫時無法存取頻道或身分組。"
+    : "確認頻道、分類與身分組可存取後，才會顯示設定表單。";
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-5 text-sm shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <Loader2
+            className={cn(
+              "mt-0.5 h-5 w-5 shrink-0 text-primary",
+              state.loading || state.retrying ? "animate-spin" : ""
+            )}
+            aria-hidden="true"
+          />
+          <div className="min-w-0">
+            <p className="font-medium text-foreground">{title}</p>
+            <p className="mt-1 leading-6 text-muted-foreground">{description}</p>
+            {state.error ? (
+              <p className="mt-2 leading-6 text-amber-700 dark:text-amber-200">
+                {state.error}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        {state.canRetry ? (
+          <button
+            type="button"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            onClick={onRetry}
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            立即重試
+          </button>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
