@@ -109,6 +109,7 @@ sha-0123456789abcdef0123456789abcdef01234567
 
 部署 SSH 連線每 15 秒送出保活請求。1 GB VM 首次拉取映像、啟動音訊節點與執行
 容器檢查可能較慢，因此部署工作上限為 60 分鐘；健康檢查與回滾檢查仍會執行。
+Prisma Client 已在映像建置時產生，正式部署的 schema 同步使用 `--skip-generate`，避免在 VM 重複產生。
 
 ## Slash commands
 

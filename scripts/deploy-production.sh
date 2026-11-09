@@ -253,7 +253,8 @@ compose_for_tag "$TARGET_TAG" run --rm --no-deps bot \
   rm -f /var/lib/hydrava-music/hydrava-deploy-smoke.opus
 
 echo "Applying the Prisma schema with the target Dashboard image..."
-compose_for_tag "$TARGET_TAG" run --rm --no-deps dashboard corepack pnpm db:push
+# The immutable image already contains the client generated for this schema.
+compose_for_tag "$TARGET_TAG" run --rm --no-deps dashboard corepack pnpm db:push --skip-generate
 
 DEPLOYMENT_STARTED=true
 
