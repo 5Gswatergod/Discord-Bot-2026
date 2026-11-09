@@ -71,6 +71,8 @@ jobs:
             -i "$HOME/.ssh/id_deploy" \
             -o BatchMode=yes \
             -o ConnectTimeout=15 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=4 \
             -o StrictHostKeyChecking=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "cd /home/ubuntu/Discord-Bot-2026 && git pull --ff-only origin master && bash scripts/register-commands-production.sh '$IMAGE_TAG'"
