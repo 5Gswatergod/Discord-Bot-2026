@@ -92,9 +92,9 @@ import { requireManageableGuild } from "@/lib/guild-access";
 import { prisma } from "@/lib/prisma";
 
 type GuildOverviewPageProps = {
-  params: {
+  params: Promise<{
     guildId: string;
-  };
+  }>;
 };
 
 const auditActionLabels: Record<string, string> = {
@@ -179,7 +179,8 @@ function formatAuditAction(action: string) {
   return action;
 }
 
-export default async function GuildOverviewPage({ params }: GuildOverviewPageProps) {
+export default async function GuildOverviewPage({ params: paramsPromise }: GuildOverviewPageProps) {
+  const params = await paramsPromise;
   const { guild } = await requireManageableGuild(params.guildId);
   const dbGuild = await prisma.guild.findUnique({
     where: {

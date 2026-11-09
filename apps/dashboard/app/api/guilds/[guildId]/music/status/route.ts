@@ -6,15 +6,16 @@ import { requireGuildApiAccess } from "@/lib/api-auth";
 import { ensureRedisConnection } from "@/lib/redis";
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     guildId: string;
-  };
+  }>;
 };
 
 const nodeStateKey = "hydrava:music:node";
 const statusKey = (guildId: string) => `hydrava:music:status:${guildId}`;
 
-export async function GET(_request: Request, { params }: RouteContext) {
+export async function GET(_request: Request, { params: paramsPromise }: RouteContext) {
+  const params = await paramsPromise;
   const access = await requireGuildApiAccess(params.guildId);
 
   if (!access.ok) {

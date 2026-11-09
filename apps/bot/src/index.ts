@@ -97,7 +97,13 @@ async function main() {
   });
 
   client.on(Events.InteractionCreate, (interaction) => {
-    void handleInteractionCreate(interaction, context);
+    void handleInteractionCreate(interaction, context).catch((error) => {
+      logger.error("Failed to handle Discord interaction", {
+        guildId: interaction.guildId,
+        interactionId: interaction.id,
+        error
+      });
+    });
   });
 
   client.on(Events.MessageReactionAdd, (reaction, user) => {

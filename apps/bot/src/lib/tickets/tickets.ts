@@ -183,7 +183,7 @@ async function openTicket(interaction: ButtonInteraction, context: CommandContex
   const { enabled, settings, rawSettings } = await getTicketSettings(context, interaction.guildId);
 
   if (!enabled) {
-    await interaction.reply({ content: "此伺服器已停用客服單功能。", ephemeral: true });
+    await interaction.followUp({ content: "此伺服器已停用客服單功能。", ephemeral: true });
     return;
   }
 
@@ -194,7 +194,7 @@ async function openTicket(interaction: ButtonInteraction, context: CommandContex
     (settings.panelChannelId && interaction.channelId !== settings.panelChannelId) ||
     (panelMessageId && interaction.message.id !== panelMessageId)
   ) {
-    await interaction.reply({
+    await interaction.followUp({
       content: "這是已失效的客服面板，請使用目前設定頻道中的新面板。",
       ephemeral: true
     });
@@ -210,14 +210,13 @@ async function openTicket(interaction: ButtonInteraction, context: CommandContex
   });
 
   if (openCount >= settings.maxOpenPerUser) {
-    await interaction.reply({
+    await interaction.followUp({
       content: `你最多只能同時開啟 ${settings.maxOpenPerUser} 張客服單。`,
       ephemeral: true
     });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
   const safeName =
     interaction.user.username
       .toLowerCase()
@@ -291,7 +290,7 @@ async function openTicket(interaction: ButtonInteraction, context: CommandContex
       { name: "頻道", value: `<#${channel.id}>`, inline: true },
       { name: "客服單 ID", value: ticket.id }
     ]);
-    await interaction.editReply(`客服單已建立：${channel}`);
+    await interaction.followUp({ content: `客服單已建立：${channel}`, ephemeral: true });
   } catch (error) {
     await channel.delete("Ticket database creation failed").catch(() => null);
     throw error;
@@ -311,7 +310,7 @@ async function claimTicket(
   const { settings } = await getTicketSettings(context, interaction.guildId);
 
   if (!isSupportMember(member, settings)) {
-    await interaction.reply({ content: "你不是客服團隊成員。", ephemeral: true });
+    await interaction.followUp({ content: "你不是客服團隊成員。", ephemeral: true });
     return;
   }
 
@@ -327,7 +326,7 @@ async function claimTicket(
     }
   });
 
-  await interaction.reply({
+  await interaction.followUp({
     content: updated.count > 0 ? `${interaction.user} 已領取此客服單。` : "此客服單已被領取。",
     ephemeral: updated.count === 0
   });
@@ -411,7 +410,7 @@ async function closeTicketFromButton(
   });
 
   if (!ticket) {
-    await interaction.reply({ content: "找不到仍在處理中的客服單。", ephemeral: true });
+    await interaction.followUp({ content: "找不到仍在處理中的客服單。", ephemeral: true });
     return;
   }
 
@@ -419,7 +418,7 @@ async function closeTicketFromButton(
   const { settings } = await getTicketSettings(context, interaction.guildId);
 
   if (ticket.ownerUserId !== interaction.user.id && !isSupportMember(member, settings)) {
-    await interaction.reply({ content: "你沒有權限關閉此客服單。", ephemeral: true });
+    await interaction.followUp({ content: "你沒有權限關閉此客服單。", ephemeral: true });
     return;
   }
 
@@ -430,7 +429,7 @@ async function closeTicketFromButton(
     interaction.user.id,
     "按鈕關閉"
   );
-  await interaction.reply("客服單已關閉，此頻道將在 10 秒後刪除。");
+  await interaction.followUp("客服單已關閉，此頻道將在 10 秒後刪除。");
 
   setTimeout(() => {
     void interaction.channel?.delete("Hydrava ticket closed").catch(() => null);
@@ -443,6 +442,7 @@ export async function handleTicketButton(interaction: ButtonInteraction, context
   }
 
   try {
+    await interaction.deferUpdate();
     if (interaction.customId === openButtonId) {
       await openTicket(interaction, context);
       return true;

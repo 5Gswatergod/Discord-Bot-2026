@@ -459,7 +459,7 @@ export const autoModRuleInputSchema = z.object({
       capsMinLength: z.coerce.number().int().min(5).max(500).default(12),
       capsPercentage: z.coerce.number().min(0.5).max(1).default(0.7)
     })
-    .default({})
+    .prefault({})
 });
 
 export const autoModUpdateSchema = z.object({
@@ -1315,8 +1315,8 @@ export const automationRuleInputSchema = z
     name: z.string().trim().min(1).max(100),
     description: z.string().trim().max(500).optional().nullable().default(null),
     trigger: z.enum(automationTriggers),
-    triggerConfig: automationTriggerConfigSchema.default({}),
-    conditions: automationConditionsSchema.default({}),
+    triggerConfig: automationTriggerConfigSchema.prefault({}),
+    conditions: automationConditionsSchema.prefault({}),
     actions: z.array(automationActionSchema).min(1).max(10),
     position: z.coerce.number().int().min(0).max(10_000).default(0),
     enabled: z.boolean().default(true),
@@ -1406,7 +1406,7 @@ export const automationTestSchema = z.object({
       roleIds: z.array(snowflakeSchema).max(100).default([]),
       occurredAt: z.coerce.date().default(() => new Date())
     })
-    .default({})
+    .prefault({})
 });
 
 export type AutomationTriggerConfig = z.infer<typeof automationTriggerConfigSchema>;

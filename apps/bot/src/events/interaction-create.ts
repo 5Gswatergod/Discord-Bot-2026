@@ -23,25 +23,23 @@ export async function handleInteractionCreate(interaction: Interaction, context:
       if (await context.music?.handleButton(interaction)) {
         return;
       }
+      if (await handleTicketButton(interaction, context)) {
+        return;
+      }
+
+      if (await handleReactionRoleButton(interaction, context)) {
+        return;
+      }
+
+      if (await handleGiveawayButton(interaction, context)) {
+        return;
+      }
+
+      if (await handlePollButton(interaction, context)) {
+        return;
+      }
     } catch (error) {
       await handleInteractionError(interaction, error, context);
-      return;
-    }
-
-    if (await handleTicketButton(interaction, context)) {
-      return;
-    }
-
-    if (await handleReactionRoleButton(interaction, context)) {
-      return;
-    }
-
-    if (await handleGiveawayButton(interaction, context)) {
-      return;
-    }
-
-    if (await handlePollButton(interaction, context)) {
-      return;
     }
 
     return;

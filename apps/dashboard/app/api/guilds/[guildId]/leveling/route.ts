@@ -7,12 +7,13 @@ import { requireGuildApiAccess } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     guildId: string;
-  };
+  }>;
 };
 
-export async function PATCH(request: Request, { params }: RouteContext) {
+export async function PATCH(request: Request, { params: paramsPromise }: RouteContext) {
+  const params = await paramsPromise;
   const access = await requireGuildApiAccess(params.guildId);
 
   if (!access.ok) {

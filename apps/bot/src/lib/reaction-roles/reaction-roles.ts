@@ -3,6 +3,8 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  MessageFlags,
+  PermissionFlagsBits,
   type ButtonInteraction,
   type Guild,
   type GuildMember,
@@ -445,7 +447,12 @@ async function applyRoleOption(
     }
   });
 
-  if (!option?.panel.enabled || option.panel.deletedAt) {
+  if (
+    !option?.panel.enabled ||
+    option.panel.deletedAt ||
+    option.guildId !== member.guild.id ||
+    option.panel.guildId !== member.guild.id
+  ) {
     return "此身分組面板目前無法使用。";
   }
 
@@ -459,11 +466,17 @@ async function applyRoleOption(
     return "此伺服器已停用自助身分組功能。";
   }
 
-  if (option.panel.mode === ReactionRoleMode.SINGLE_SELECT && mode !== "remove") {
-    const otherRoleIds = option.panel.options
-      .filter((item) => item.id !== option.id)
-      .map((item) => item.roleId);
-    await member.roles.remove(otherRoleIds).catch(() => null);
+  const botMember = await member.guild.members.fetchMe();
+
+  if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+    return "機器人缺少「管理身分組」權限，請聯絡管理員。";
+  }
+
+  await member.guild.roles.fetch();
+  const role = member.guild.roles.cache.get(option.roleId);
+
+  if (!role || role.id === member.guild.id || !role.editable) {
+    return "此身分組已刪除或無法指派，請管理員確認它不是整合管理的身分組，且位於機器人的最高身分組下方。";
   }
 
   const hasRole = member.roles.cache.has(option.roleId);
@@ -472,6 +485,20 @@ async function applyRoleOption(
   if (shouldRemove) {
     await member.roles.remove(option.roleId, "自助身分組切換");
     return `已移除 ${option.label}。`;
+  }
+
+  if (option.panel.mode === ReactionRoleMode.SINGLE_SELECT) {
+    const otherRoleIds = option.panel.options
+      .filter((item) => item.id !== option.id && member.roles.cache.has(item.roleId))
+      .map((item) => item.roleId);
+
+    if (otherRoleIds.some((roleId) => !member.guild.roles.cache.get(roleId)?.editable)) {
+      return "無法移除目前的單選身分組，請管理員檢查身分組層級與權限。";
+    }
+
+    if (otherRoleIds.length > 0) {
+      await member.roles.remove(otherRoleIds, "自助身分組單選切換");
+    }
   }
 
   await member.roles.add(option.roleId, "自助身分組切換");
@@ -486,12 +513,16 @@ export async function handleReactionRoleButton(
     return false;
   }
 
-  const member = await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  const member = await interaction.guild?.members.fetch({
+    user: interaction.user.id,
+    force: true
+  });
 
   if (!member) {
-    await interaction.reply({
-      content: "找不到你的伺服器成員資料。",
-      ephemeral: true
+    await interaction.editReply({
+      content: "找不到你的伺服器成員資料。"
     });
     return true;
   }
@@ -503,9 +534,8 @@ export async function handleReactionRoleButton(
     "toggle"
   );
 
-  await interaction.reply({
-    content: message,
-    ephemeral: true
+  await interaction.editReply({
+    content: message
   });
   return true;
 }

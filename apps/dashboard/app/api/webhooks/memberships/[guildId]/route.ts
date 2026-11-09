@@ -15,7 +15,7 @@ import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
-  params: { guildId: string };
+  params: Promise<{ guildId: string }>;
 };
 
 function isValidSignature(body: string, signature: string | null) {
@@ -35,7 +35,8 @@ function isValidSignature(body: string, signature: string | null) {
   return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(supplied, "hex"));
 }
 
-export async function POST(request: Request, { params }: RouteContext) {
+export async function POST(request: Request, { params: paramsPromise }: RouteContext) {
+  const params = await paramsPromise;
   const body = await request.text();
 
   if (!isValidSignature(body, request.headers.get("x-hydrava-signature"))) {

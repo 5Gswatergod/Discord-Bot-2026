@@ -3,6 +3,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  MessageFlags,
   type ButtonInteraction
 } from "discord.js";
 
@@ -154,6 +155,8 @@ export async function handlePollButton(interaction: ButtonInteraction, context: 
     return false;
   }
 
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
   const [, pollId, optionId] = interaction.customId.split(":");
   const poll = await context.prisma.poll.findUnique({
     where: {
@@ -162,9 +165,8 @@ export async function handlePollButton(interaction: ButtonInteraction, context: 
   });
 
   if (!poll || (poll.endsAt && poll.endsAt <= new Date())) {
-    await interaction.reply({
-      content: "此投票已結束。",
-      ephemeral: true
+    await interaction.editReply({
+      content: "此投票已結束。"
     });
     return true;
   }
@@ -172,9 +174,8 @@ export async function handlePollButton(interaction: ButtonInteraction, context: 
   const enabled = await isGuildModuleEnabled(context.prisma, interaction.guildId, "POLLS");
 
   if (!enabled) {
-    await interaction.reply({
-      content: "此伺服器已停用投票功能。",
-      ephemeral: true
+    await interaction.editReply({
+      content: "此伺服器已停用投票功能。"
     });
     return true;
   }
@@ -199,12 +200,11 @@ export async function handlePollButton(interaction: ButtonInteraction, context: 
 
   await refreshPollMessage(context, pollId);
 
-  await interaction.reply({
+  await interaction.editReply({
     content:
       poll.visibility === PollVisibility.PUBLIC
         ? "已儲存你的投票，公開結果已更新。"
-        : "已儲存你的投票。",
-    ephemeral: true
+        : "已儲存你的投票。"
   });
   return true;
 }

@@ -8,7 +8,19 @@ function write(level: "info" | "warn" | "error", message: string, metadata?: unk
     timestamp: new Date().toISOString()
   };
 
-  const line = JSON.stringify(payload);
+  const line = JSON.stringify(payload, (_key, value) =>
+    value instanceof Error
+      ? {
+          name: value.name,
+          message: value.message,
+          stack: value.stack,
+          ...("code" in value && (typeof value.code === "string" || typeof value.code === "number")
+            ? { code: value.code }
+            : {}),
+          ...("status" in value && typeof value.status === "number" ? { status: value.status } : {})
+        }
+      : value
+  );
 
   if (level === "error") {
     console.error(line);

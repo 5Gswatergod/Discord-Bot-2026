@@ -3,6 +3,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  MessageFlags,
   type ButtonInteraction,
   type Guild
 } from "discord.js";
@@ -176,6 +177,8 @@ export async function handleGiveawayButton(interaction: ButtonInteraction, conte
     return false;
   }
 
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
   const giveawayId = interaction.customId.slice(buttonPrefix.length);
   const giveaway = await context.prisma.giveaway.findUnique({
     where: {
@@ -184,9 +187,8 @@ export async function handleGiveawayButton(interaction: ButtonInteraction, conte
   });
 
   if (!giveaway || giveaway.status !== GiveawayStatus.ACTIVE || giveaway.endsAt <= new Date()) {
-    await interaction.reply({
-      content: "此抽獎已經結束或無法參加。",
-      ephemeral: true
+    await interaction.editReply({
+      content: "此抽獎已經結束或無法參加。"
     });
     return true;
   }
@@ -194,9 +196,8 @@ export async function handleGiveawayButton(interaction: ButtonInteraction, conte
   const moduleEnabled = await isGuildModuleEnabled(context.prisma, interaction.guildId, "GIVEAWAYS");
 
   if (!moduleEnabled) {
-    await interaction.reply({
-      content: "此伺服器已停用抽獎功能。",
-      ephemeral: true
+    await interaction.editReply({
+      content: "此伺服器已停用抽獎功能。"
     });
     return true;
   }
@@ -205,9 +206,8 @@ export async function handleGiveawayButton(interaction: ButtonInteraction, conte
     const member = await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
 
     if (!member?.roles.cache.has(giveaway.requiredRoleId)) {
-      await interaction.reply({
-        content: "你沒有參加此抽獎所需的身分組。",
-        ephemeral: true
+      await interaction.editReply({
+        content: "你沒有參加此抽獎所需的身分組。"
       });
       return true;
     }
@@ -228,9 +228,8 @@ export async function handleGiveawayButton(interaction: ButtonInteraction, conte
     update: {}
   });
 
-  await interaction.reply({
-    content: "你已成功參加抽獎。",
-    ephemeral: true
+  await interaction.editReply({
+    content: "你已成功參加抽獎。"
   });
   return true;
 }

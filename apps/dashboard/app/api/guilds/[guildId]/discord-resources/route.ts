@@ -4,12 +4,13 @@ import { requireGuildApiAccess } from "@/lib/api-auth";
 import { getDiscordGuildResources } from "@/lib/discord-resources";
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     guildId: string;
-  };
+  }>;
 };
 
-export async function GET(_request: Request, { params }: RouteContext) {
+export async function GET(_request: Request, { params: paramsPromise }: RouteContext) {
+  const params = await paramsPromise;
   const access = await requireGuildApiAccess(params.guildId);
 
   if (!access.ok) {

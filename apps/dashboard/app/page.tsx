@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { authOptions } from "@/lib/auth";
 
 type HomePageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     error?: string | string[];
-  };
+  }>;
 };
 
 const authErrorMessages: Record<string, string> = {
@@ -28,7 +28,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     redirect("/guilds");
   }
 
-  const errorValue = searchParams?.error;
+  const errorValue = (await searchParams)?.error;
   const errorCode = Array.isArray(errorValue) ? errorValue[0] : errorValue;
   const errorMessage = errorCode
     ? (authErrorMessages[errorCode] ?? "Discord 驗證失敗，請檢查伺服器紀錄。")
